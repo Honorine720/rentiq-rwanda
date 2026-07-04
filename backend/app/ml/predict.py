@@ -25,19 +25,22 @@ class RentPredictor:
         self.explainer = self._create_explainer()
 
     def _load_models(self):
-        """Load ensemble models. Falls back to best_model.pkl if ensemble not available."""
+        """Load ensemble models. Skips random_forest to save memory on free hosting."""
         ensemble_meta_path = self.model_dir / 'ensemble_meta.pkl'
+        # Models to skip on memory-constrained environments
+        SKIP_MODELS = {'random_forest'}
         if ensemble_meta_path.exists():
             ensemble_meta = joblib.load(ensemble_meta_path)
             models = []
             weights = []
             for slug, w in zip(ensemble_meta['slugs'], ensemble_meta['weights']):
+                if slug in SKIP_MODELS:
+                    continue
                 path = self.model_dir / f'{slug}.pkl'
                 if path.exists():
                     models.append(joblib.load(path))
                     weights.append(w)
             if models:
-                # Normalize weights
                 total = sum(weights)
                 self.weights = [w / total for w in weights]
                 return models
@@ -246,10 +249,14 @@ _predictor_instance = None
 
 
 def get_predictor() -> RentPredictor:
-    """Get or create predictor singleton"""
+    """Get or create predictor singleton (lazy load)"""
     global _predictor_instance
     if _predictor_instance is None:
-        _predictor_instance = RentPredictor()
+        try:
+            _predictor_instance = RentPredictor()
+        except Exception as e:
+            print(f"Warning: Could not load predictor: {e}")
+            return None
     return _predictor_instance
 
 

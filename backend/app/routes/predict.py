@@ -84,6 +84,11 @@ async def predict_rent(
         
         # Get predictor instance
         pred = get_predictor()
+        if pred is None:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail={"error": "Model not available", "code": 503, "detail": "ML model failed to load"}
+            )
         
         # Make prediction
         result = pred.predict(input_data)
