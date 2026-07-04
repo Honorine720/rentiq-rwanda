@@ -77,8 +77,11 @@ def init_db():
     Initialize database - create all tables
     Call this on application startup
     """
-    Base.metadata.create_all(bind=engine)
-    print("✓ Database initialized")
+    try:
+        Base.metadata.create_all(bind=engine)
+        print("✓ Database initialized")
+    except Exception as e:
+        print(f"⚠ Database init failed (predictions won't be saved): {e}")
 
 
 def get_db():
