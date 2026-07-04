@@ -1,0 +1,54 @@
+{
+  "dataset_name": "Gasabo District Housing Dataset",
+  "district": "Gasabo",
+  "city": "Kigali",
+  "country": "Rwanda",
+  "total_records": 2500,
+  "features": [
+    "district",
+    "sector",
+    "urban_rural",
+    "house_type",
+    "num_bedrooms",
+    "num_rooms_total",
+    "floor_area_sqm",
+    "wall_material",
+    "floor_material",
+    "roof_material",
+    "has_electricity",
+    "has_piped_water",
+    "has_indoor_toilet",
+    "has_kitchen",
+    "has_parking",
+    "distance_to_cbd_km",
+    "road_access",
+    "is_near_cbd",
+    "monthly_rent_rwf",
+    "data_source",
+    "generated_date",
+    "utility_score",
+    "material_quality",
+    "rooms_per_bedroom",
+    "area_per_bedroom"
+  ],
+  "target": "monthly_rent_rwf",
+  "sources": {
+    "synthetic_nisr_calibrated": 2000,
+    "EICV5_synthetic": 500
+  },
+  "rent_statistics": {
+    "mean": 107351.4,
+    "median": 73500.0,
+    "std": 98551.44,
+    "min": 12000,
+    "max": 700000
+  },
+  "nisr_benchmark": {
+    "avg_rent_rwf": 87500,
+    "electricity_pct": 0.72,
+    "piped_water_pct": 0.68
+  },
+  "usd_exchange_rate": 1428.47827558333,
+  "generated_at": "2026-07-03T08:00:45.485880",
+  "calibration_source": "NISR EICV5 2016/17 + Rwanda Housing Report 2022"
+}

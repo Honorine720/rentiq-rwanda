@@ -1,0 +1,24 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# Environment
+.env
+
+# Data (large files)
+data/raw/
+data/scraped/
+data/processed/
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Keep models_saved/ — Railway needs them
+# Keep data/gasabo_housing_data.csv — needed for retraining

@@ -1,0 +1,71 @@
+{
+  "source": "NISR EICV5 2016/17 + Rwanda Housing Report 2022",
+  "gasabo_district": {
+    "total_households": 185420,
+    "renting_households_pct": 0.52,
+    "avg_monthly_rent_rwf": 87500,
+    "median_monthly_rent_rwf": 65000,
+    "electricity_access_pct": 0.72,
+    "piped_water_access_pct": 0.68,
+    "iron_sheet_roof_pct": 0.71,
+    "brick_wall_pct": 0.48,
+    "avg_rooms_per_household": 3.2,
+    "avg_household_size": 3.8
+  },
+  "sectors": {
+    "Kimironko": {
+      "avg_rent_rwf": 95000,
+      "urban_classification": "urban",
+      "population_density": "high"
+    },
+    "Remera": {
+      "avg_rent_rwf": 110000,
+      "urban_classification": "urban",
+      "population_density": "high"
+    },
+    "Kacyiru": {
+      "avg_rent_rwf": 145000,
+      "urban_classification": "urban",
+      "population_density": "medium"
+    },
+    "Gisozi": {
+      "avg_rent_rwf": 75000,
+      "urban_classification": "peri_urban",
+      "population_density": "medium"
+    },
+    "Bumbogo": {
+      "avg_rent_rwf": 45000,
+      "urban_classification": "peri_urban",
+      "population_density": "low"
+    },
+    "Jabana": {
+      "avg_rent_rwf": 38000,
+      "urban_classification": "peri_urban",
+      "population_density": "low"
+    },
+    "Rusororo": {
+      "avg_rent_rwf": 32000,
+      "urban_classification": "rural",
+      "population_density": "low"
+    }
+  },
+  "price_ranges": {
+    "rural_basic": {
+      "min": 15000,
+      "max": 40000
+    },
+    "peri_urban": {
+      "min": 35000,
+      "max": 120000
+    },
+    "urban_standard": {
+      "min": 80000,
+      "max": 250000
+    },
+    "urban_premium": {
+      "min": 200000,
+      "max": 600000
+    }
+  },
+  "usd_exchange_rate": 1396.0
+}

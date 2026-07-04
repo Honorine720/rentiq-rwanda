@@ -1,0 +1,18 @@
+{
+  "urbanization_rate": {
+    "value": 30.9133840928162,
+    "year": "2025"
+  },
+  "gdp_per_capita_usd": {
+    "value": 1123.73874633225,
+    "year": "2025"
+  },
+  "inflation_rate": {
+    "value": 5.913000168826,
+    "year": "2025"
+  },
+  "usd_exchange_rate": {
+    "value": 1428.47827558333,
+    "year": "2025"
+  }
+}
