@@ -1,165 +1,146 @@
 import { useState } from 'react';
 import PredictionForm from '../components/PredictionForm';
 import { formatRWF, formatUSD, getPriceTier } from '../services/api';
-import { TrendingUp, MapPin, Home as HomeIcon, DollarSign, Info } from 'lucide-react';
+import { TrendingUp, TrendingDown, BarChart2, Info, RotateCcw, ArrowUpRight, ArrowDownRight } from 'lucide-react';
 
 export default function Predict() {
   const [prediction, setPrediction] = useState(null);
 
-  const handlePrediction = (result) => {
-    setPrediction(result);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  const resetForm = () => {
-    setPrediction(null);
-  };
-
   if (prediction) {
     const priceTier = getPriceTier(prediction.predicted_rent_rwf);
+    const tierColors = {
+      Affordable: 'bg-green-50 text-green-700 border-green-200',
+      'Mid-Range': 'bg-amber-50 text-amber-700 border-amber-200',
+      Premium: 'bg-purple-50 text-purple-700 border-purple-200',
+    };
 
     return (
-      <div className="max-w-5xl mx-auto px-6 py-12">
+      <div className="max-w-4xl mx-auto px-6 py-10">
         {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-4xl md:text-5xl font-black mb-3">
-            🎯 Your Rent Prediction
-          </h1>
-          <p className="text-lg font-bold text-gray-600">
-            Here's what our AI model predicts for your property
-          </p>
+        <div className="mb-8">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-slate-900">Rent Prediction Result</h1>
+              <p className="text-slate-500 text-sm mt-1">
+                Based on your property details in Gasabo District
+              </p>
+            </div>
+            <button
+              onClick={() => setPrediction(null)}
+              className="btn-secondary text-sm gap-2"
+            >
+              <RotateCcw size={15} />
+              New Prediction
+            </button>
+          </div>
         </div>
 
-        {/* Main Result Card */}
-        <div className="bg-white border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] p-8 mb-6">
-          <div className="flex items-center justify-between mb-6 pb-4 border-b-2 border-black">
-            <h2 className="text-2xl font-black">Predicted Monthly Rent</h2>
-            <span className={`px-4 py-2 border-2 border-black font-black text-sm uppercase ${priceTier.bgColor} ${priceTier.textColor}`}>
+        {/* Main Price Card */}
+        <div className="card p-8 mb-5">
+          <div className="flex items-start justify-between mb-6">
+            <div>
+              <p className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-1">
+                Estimated Monthly Rent
+              </p>
+              <p className="text-5xl font-extrabold text-slate-900">
+                {formatRWF(prediction.predicted_rent_rwf)}
+              </p>
+              <p className="text-xl font-semibold text-slate-500 mt-1">
+                {formatUSD(prediction.predicted_rent_usd)} / month
+              </p>
+            </div>
+            <span className={`px-3 py-1.5 rounded-full border text-xs font-bold uppercase tracking-wide ${tierColors[priceTier.tier]}`}>
               {priceTier.tier}
             </span>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-6 mb-6">
-            {/* RWF Price */}
-            <div className="bg-[#F9A825] border-3 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-6">
-              <div className="flex items-center gap-2 mb-2">
-                <DollarSign size={24} className="font-black" />
-                <span className="font-black text-sm uppercase">Rwanda Francs</span>
-              </div>
-              <p className="text-4xl font-black text-black">
-                {formatRWF(prediction.predicted_rent_rwf)}
-              </p>
-              <p className="text-sm font-bold text-gray-800 mt-1">per month</p>
-            </div>
-
-            {/* USD Price */}
-            <div className="bg-[#0095DA] border-3 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-6 text-white">
-              <div className="flex items-center gap-2 mb-2">
-                <DollarSign size={24} />
-                <span className="font-black text-sm uppercase">US Dollars</span>
-              </div>
-              <p className="text-4xl font-black">
-                {formatUSD(prediction.predicted_rent_usd)}
-              </p>
-              <p className="text-sm font-bold opacity-90 mt-1">per month</p>
-            </div>
-          </div>
-
           {/* Confidence Range */}
-          <div className="bg-gray-100 border-2 border-black p-4">
-            <div className="flex items-start gap-2">
-              <Info size={20} className="mt-0.5 flex-shrink-0" />
-              <div>
-                <p className="font-black text-sm uppercase mb-1">Confidence Range</p>
-                <p className="font-bold text-gray-700">
-                  {formatRWF(prediction.confidence_range.low)} - {formatRWF(prediction.confidence_range.high)}
-                </p>
-                <p className="text-xs font-semibold text-gray-600 mt-1">
-                  The actual rent is likely to fall within this range
-                </p>
-              </div>
+          <div className="bg-slate-50 rounded-lg p-4 flex items-start gap-3">
+            <Info size={16} className="text-slate-400 mt-0.5 flex-shrink-0" />
+            <div>
+              <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-0.5">
+                Confidence Range
+              </p>
+              <p className="text-sm font-bold text-slate-800">
+                {formatRWF(prediction.confidence_range.low)} — {formatRWF(prediction.confidence_range.high)}
+              </p>
+              <p className="text-xs text-slate-500 mt-0.5">
+                The actual market rent is likely to fall within this range
+              </p>
             </div>
           </div>
         </div>
 
         {/* SHAP Explanations */}
-        <div className="bg-white border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] p-8 mb-6">
-          <h2 className="text-2xl font-black mb-4 flex items-center gap-2">
-            <TrendingUp size={28} />
-            What Influences This Price?
-          </h2>
-          <p className="text-sm font-bold text-gray-600 mb-6">
-            Top factors that impact the rent prediction (SHAP values)
-          </p>
-
+        <div className="card p-6 mb-5">
+          <div className="flex items-center gap-2 mb-5">
+            <BarChart2 size={20} className="text-blue-600" />
+            <h2 className="font-bold text-slate-900">Price Influencing Factors</h2>
+            <span className="ml-auto text-xs text-slate-400 font-medium">SHAP Values</span>
+          </div>
           <div className="space-y-3">
-            {prediction.shap_explanations?.map((exp, idx) => (
-              <div
-                key={idx}
-                className="flex items-center justify-between p-4 border-2 border-black bg-gray-50"
-              >
-                <div className="flex items-center gap-3">
-                  <span className="w-8 h-8 flex items-center justify-center bg-[#2E7D32] text-white font-black border-2 border-black text-sm">
+            {prediction.shap_explanations?.map((exp, idx) => {
+              const isPos = exp.direction === 'positive';
+              const maxImpact = Math.max(...prediction.shap_explanations.map(e => Math.abs(e.impact)));
+              const barWidth = Math.round((Math.abs(exp.impact) / maxImpact) * 100);
+              return (
+                <div key={idx} className="flex items-center gap-4">
+                  <span className="text-xs font-bold text-slate-400 w-4 text-right flex-shrink-0">
                     {idx + 1}
                   </span>
-                  <span className="font-bold text-gray-800">{exp.feature}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-sm font-semibold text-slate-700 truncate">
+                        {exp.feature.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+                      </span>
+                      <div className={`flex items-center gap-1 text-xs font-bold flex-shrink-0 ml-2 ${isPos ? 'text-green-600' : 'text-red-500'}`}>
+                        {isPos ? <ArrowUpRight size={13} /> : <ArrowDownRight size={13} />}
+                        {formatRWF(Math.abs(exp.impact))}
+                      </div>
+                    </div>
+                    <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all ${isPos ? 'bg-green-400' : 'bg-red-400'}`}
+                        style={{ width: `${barWidth}%` }}
+                      />
+                    </div>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span
-                    className={`font-black text-lg ${
-                      exp.direction === 'positive' ? 'text-green-600' : 'text-red-600'
-                    }`}
-                  >
-                    {exp.direction === 'positive' ? '↑' : '↓'}
-                  </span>
-                  <span className={`font-black ${exp.direction === 'positive' ? 'text-green-600' : 'text-red-600'}`}>
-                    {formatRWF(Math.abs(exp.impact))}
-                  </span>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
         {/* Model Info */}
-        <div className="bg-white border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] p-6 mb-6">
-          <h3 className="font-black text-lg mb-3">📊 Model Information</h3>
-          <div className="grid grid-cols-2 gap-4 text-sm">
+        <div className="card p-5">
+          <div className="grid grid-cols-3 gap-4 text-center">
             <div>
-              <span className="font-black uppercase text-gray-600">Model Used:</span>
-              <p className="font-bold">{prediction.model_used}</p>
+              <p className="text-xs text-slate-500 font-medium uppercase tracking-wide mb-1">Model</p>
+              <p className="text-sm font-bold text-slate-800 truncate">{prediction.model_used}</p>
             </div>
             <div>
-              <span className="font-black uppercase text-gray-600">Accuracy (R²):</span>
-              <p className="font-bold">{(prediction.r2_score * 100).toFixed(1)}%</p>
+              <p className="text-xs text-slate-500 font-medium uppercase tracking-wide mb-1">Accuracy (R²)</p>
+              <p className="text-sm font-bold text-slate-800">{(prediction.r2_score * 100).toFixed(1)}%</p>
+            </div>
+            <div>
+              <p className="text-xs text-slate-500 font-medium uppercase tracking-wide mb-1">Prediction ID</p>
+              <p className="text-xs font-mono text-slate-500 truncate">{prediction.prediction_id?.slice(0, 12)}...</p>
             </div>
           </div>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex gap-4 justify-center">
-          <button
-            onClick={resetForm}
-            className="px-8 py-4 bg-[#0095DA] text-white font-black uppercase border-4 border-black shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] hover:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1 hover:-translate-x-1 transition-all"
-          >
-            ← New Prediction
-          </button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-5xl mx-auto px-6 py-12">
-      <div className="text-center mb-8">
-        <h1 className="text-4xl md:text-5xl font-black mb-3">
-          🏠 Predict House Rent
-        </h1>
-        <p className="text-lg font-bold text-gray-600">
-          Fill in the details below to get an AI-powered rent estimate
+    <div className="max-w-4xl mx-auto px-6 py-10">
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold text-slate-900">Predict House Rent</h1>
+        <p className="text-slate-500 text-sm mt-1">
+          Fill in the property details below to get an AI-powered rent estimate for Gasabo District
         </p>
       </div>
-      <PredictionForm onPredictionComplete={handlePrediction} />
+      <PredictionForm onPredictionComplete={setPrediction} />
     </div>
   );
 }

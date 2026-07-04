@@ -1,25 +1,20 @@
 import { useState, useEffect } from 'react';
 import { getPredictionHistory, formatRWF, formatDate, getPriceTier } from '../services/api';
-import { Clock, Trash2, Download, MapPin } from 'lucide-react';
+import { History as HistoryIcon, MapPin, BedDouble, Maximize2, RefreshCw, BarChart2 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 export default function History() {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [selectedDistrict, setSelectedDistrict] = useState(null);
 
-  useEffect(() => {
-    loadHistory();
-  }, [selectedDistrict]);
+  useEffect(() => { loadHistory(); }, []);
 
   const loadHistory = async () => {
     setLoading(true);
     setError(null);
     try {
-      const data = await getPredictionHistory({
-        limit: 50,
-        district: selectedDistrict,
-      });
+      const data = await getPredictionHistory({ limit: 50 });
       setHistory(data.predictions || []);
     } catch (err) {
       setError(err.userMessage || 'Failed to load history');
@@ -28,114 +23,107 @@ export default function History() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="max-w-6xl mx-auto px-6 py-20 text-center">
-        <div className="inline-block w-16 h-16 border-4 border-black border-t-[#F9A825] rounded-full animate-spin"></div>
-        <p className="mt-4 font-black text-xl uppercase">Loading History...</p>
-      </div>
-    );
-  }
+  const tierColors = {
+    Affordable: 'bg-green-50 text-green-700 border-green-200',
+    'Mid-Range': 'bg-amber-50 text-amber-700 border-amber-200',
+    Premium: 'bg-purple-50 text-purple-700 border-purple-200',
+  };
 
-  if (error) {
-    return (
-      <div className="max-w-4xl mx-auto px-6 py-20">
-        <div className="bg-red-100 border-4 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] p-8 text-center">
-          <p className="text-2xl font-black text-red-800 mb-3">❌ Error</p>
-          <p className="font-bold text-red-600">{error}</p>
-          <button
-            onClick={loadHistory}
-            className="mt-4 px-6 py-3 bg-white border-2 border-black font-black uppercase shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] transition-all"
-          >
-            Retry
-          </button>
-        </div>
+  if (loading) return (
+    <div className="max-w-5xl mx-auto px-6 py-20 flex flex-col items-center gap-3">
+      <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+      <p className="text-sm text-slate-500 font-medium">Loading prediction history...</p>
+    </div>
+  );
+
+  if (error) return (
+    <div className="max-w-5xl mx-auto px-6 py-16">
+      <div className="card p-8 text-center">
+        <p className="text-slate-700 font-semibold mb-4">{error}</p>
+        <button onClick={loadHistory} className="btn-secondary text-sm">
+          <RefreshCw size={15} /> Retry
+        </button>
       </div>
-    );
-  }
+    </div>
+  );
 
   return (
-    <div className="max-w-6xl mx-auto px-6 py-12">
+    <div className="max-w-5xl mx-auto px-6 py-10">
       {/* Header */}
-      <div className="text-center mb-8">
-        <h1 className="text-4xl md:text-5xl font-black mb-3 flex items-center justify-center gap-3">
-          <Clock size={40} />
-          Prediction History
-        </h1>
-        <p className="text-lg font-bold text-gray-600">
-          Review all your past rent predictions
-        </p>
-      </div>
-
-      {/* Filter */}
-      <div className="mb-6 flex justify-between items-center">
-        <div className="flex items-center gap-3">
-          <label className="font-black text-sm uppercase">Filter by District:</label>
-          <select
-            value={selectedDistrict || ''}
-            onChange={(e) => setSelectedDistrict(e.target.value || null)}
-            className="px-4 py-2 border-2 border-black font-bold bg-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
-          >
-            <option value="">All Districts</option>
-            <option value="Gasabo">Gasabo</option>
-          </select>
-        </div>
-        <p className="font-bold text-gray-600">
-          {history.length} prediction{history.length !== 1 ? 's' : ''}
-        </p>
-      </div>
-
-      {/* History List */}
-      {history.length === 0 ? (
-        <div className="bg-white border-4 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] p-12 text-center">
-          <p className="text-2xl font-black mb-2">📭 No Predictions Yet</p>
-          <p className="font-bold text-gray-600 mb-4">
-            Make your first prediction to see it here
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
+            <HistoryIcon size={22} className="text-blue-600" />
+            Prediction History
+          </h1>
+          <p className="text-slate-500 text-sm mt-1">
+            {history.length} prediction{history.length !== 1 ? 's' : ''} recorded
           </p>
-          <a
-            href="/predict"
-            className="inline-block px-6 py-3 bg-[#F9A825] border-2 border-black font-black uppercase shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] transition-all"
-          >
-            Make Prediction →
-          </a>
+        </div>
+        <button onClick={loadHistory} className="btn-secondary text-sm">
+          <RefreshCw size={15} /> Refresh
+        </button>
+      </div>
+
+      {history.length === 0 ? (
+        <div className="card p-16 text-center">
+          <div className="w-14 h-14 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-4">
+            <BarChart2 size={24} className="text-slate-400" />
+          </div>
+          <h3 className="font-bold text-slate-700 mb-2">No predictions yet</h3>
+          <p className="text-sm text-slate-500 mb-6">Make your first prediction to see it here</p>
+          <Link to="/predict" className="btn-primary text-sm">
+            Make a Prediction
+          </Link>
         </div>
       ) : (
-        <div className="space-y-4">
-          {history.map((pred) => {
-            const priceTier = getPriceTier(pred.predicted_rent_rwf);
-            return (
-              <div
-                key={pred.id}
-                className="bg-white border-3 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-6 hover:shadow-[7px_7px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1 hover:-translate-x-1 transition-all"
-              >
-                <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <span className={`px-3 py-1 border-2 border-black text-xs font-black uppercase ${priceTier.bgColor} ${priceTier.textColor}`}>
-                        {priceTier.tier}
-                      </span>
-                      <span className="flex items-center gap-1 text-sm font-bold text-gray-600">
-                        <MapPin size={14} />
-                        {pred.district}, {pred.sector}
-                      </span>
-                    </div>
-                    <p className="text-2xl font-black text-black mb-1">
-                      {formatRWF(pred.predicted_rent_rwf)}
-                    </p>
-                    <div className="flex gap-4 text-sm font-bold text-gray-600">
-                      <span>🛏️ {pred.num_bedrooms} bed</span>
-                      <span>📐 {pred.floor_area_sqm} sqm</span>
-                    </div>
+        <div className="card overflow-hidden">
+          {/* Table Header */}
+          <div className="hidden md:grid grid-cols-12 gap-4 px-6 py-3 bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase tracking-wide">
+            <div className="col-span-3">Location</div>
+            <div className="col-span-2">Property</div>
+            <div className="col-span-2">Predicted Rent</div>
+            <div className="col-span-2">Tier</div>
+            <div className="col-span-3">Date</div>
+          </div>
+
+          {/* Rows */}
+          <div className="divide-y divide-slate-100">
+            {history.map((pred) => {
+              const tier = getPriceTier(pred.predicted_rent_rwf);
+              return (
+                <div key={pred.id} className="grid grid-cols-1 md:grid-cols-12 gap-2 md:gap-4 px-6 py-4 hover:bg-slate-50 transition-colors">
+                  <div className="md:col-span-3 flex items-center gap-2">
+                    <MapPin size={14} className="text-slate-400 flex-shrink-0" />
+                    <span className="text-sm font-semibold text-slate-800">
+                      {pred.sector}, {pred.district}
+                    </span>
                   </div>
-                  <div className="text-right">
-                    <p className="text-xs font-bold text-gray-500 uppercase">
-                      {formatDate(pred.created_at)}
-                    </p>
+                  <div className="md:col-span-2 flex items-center gap-3 text-sm text-slate-600">
+                    <span className="flex items-center gap-1">
+                      <BedDouble size={13} className="text-slate-400" />
+                      {pred.num_bedrooms} bed
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Maximize2 size={13} className="text-slate-400" />
+                      {pred.floor_area_sqm}m²
+                    </span>
+                  </div>
+                  <div className="md:col-span-2">
+                    <p className="text-sm font-bold text-slate-900">{formatRWF(pred.predicted_rent_rwf)}</p>
+                  </div>
+                  <div className="md:col-span-2">
+                    <span className={`px-2.5 py-1 rounded-full border text-xs font-semibold ${tierColors[tier.tier]}`}>
+                      {tier.tier}
+                    </span>
+                  </div>
+                  <div className="md:col-span-3">
+                    <p className="text-xs text-slate-500">{formatDate(pred.created_at)}</p>
                   </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
       )}
     </div>

@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { NavLink, Link } from 'react-router-dom';
-import { Home, TrendingUp, Clock, Info, Menu, X } from 'lucide-react';
+import { LayoutDashboard, BarChart2, History, Info, Menu, X, MapPin } from 'lucide-react';
 
 const navLinks = [
-  { to: '/', label: 'Home', icon: Home },
-  { to: '/predict', label: 'Predict', icon: TrendingUp },
-  { to: '/history', label: 'History', icon: Clock },
+  { to: '/', label: 'Home', icon: LayoutDashboard },
+  { to: '/predict', label: 'Predict Rent', icon: BarChart2 },
+  { to: '/history', label: 'History', icon: History },
   { to: '/about', label: 'About', icon: Info },
 ];
 
@@ -13,53 +13,55 @@ export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const linkClasses = ({ isActive }) =>
-    `flex items-center gap-2 px-4 py-2 font-black text-sm uppercase tracking-wide transition-all ${
+    `flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-colors duration-150 ${
       isActive
-        ? 'bg-green-600 text-white border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]'
-        : 'text-black hover:bg-[#F9A825] hover:border-2 hover:border-black hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]'
+        ? 'bg-blue-600 text-white'
+        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
     }`;
 
   return (
-    <nav className="sticky top-0 z-50 bg-[#FAF9F6] border-b-4 border-black">
+    <nav className="sticky top-0 z-50 bg-white border-b border-slate-200 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
+
           {/* Logo */}
-          <Link
-            to="/"
-            className="flex items-center gap-2 font-black text-2xl tracking-tight text-black hover:scale-105 transition-transform"
-          >
-            <span className="w-8 h-8 border-3 border-black flex items-center justify-center bg-[#0095DA] text-white text-sm font-black rounded-sm">
-              R
-            </span>
-            <span>
-              Rent<span className="text-[#F9A825]">IQ</span>{' '}
-              <span className="text-[#2E7D32]">Rwanda</span>
-            </span>
+          <Link to="/" className="flex items-center gap-3 group">
+            <div className="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center flex-shrink-0">
+              <BarChart2 size={20} className="text-white" />
+            </div>
+            <div className="leading-tight">
+              <span className="font-bold text-slate-900 text-base">RentIQ</span>
+              <span className="font-bold text-blue-600 text-base"> Rwanda</span>
+              <div className="flex items-center gap-1 text-xs text-slate-400 font-medium">
+                <MapPin size={10} />
+                Gasabo District, Kigali
+              </div>
+            </div>
           </Link>
 
           {/* Desktop Nav */}
           <div className="hidden md:flex items-center gap-1">
             {navLinks.map(({ to, label, icon: Icon }) => (
               <NavLink key={to} to={to} className={linkClasses}>
-                <Icon size={18} />
+                <Icon size={16} />
                 {label}
               </NavLink>
             ))}
           </div>
 
-          {/* Mobile Hamburger */}
+          {/* Mobile toggle */}
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
-            className="md:hidden p-2 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] bg-white hover:bg-[#F9A825] transition-colors"
+            className="md:hidden p-2 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors"
             aria-label="Toggle menu"
           >
-            {mobileOpen ? <X size={24} /> : <Menu size={24} />}
+            {mobileOpen ? <X size={22} /> : <Menu size={22} />}
           </button>
         </div>
 
         {/* Mobile Menu */}
         {mobileOpen && (
-          <div className="md:hidden pb-4 flex flex-col gap-2 border-t-2 border-black pt-3">
+          <div className="md:hidden pb-4 pt-2 flex flex-col gap-1 border-t border-slate-100">
             {navLinks.map(({ to, label, icon: Icon }) => (
               <NavLink
                 key={to}
@@ -67,7 +69,7 @@ export default function Navbar() {
                 onClick={() => setMobileOpen(false)}
                 className={linkClasses}
               >
-                <Icon size={18} />
+                <Icon size={16} />
                 {label}
               </NavLink>
             ))}

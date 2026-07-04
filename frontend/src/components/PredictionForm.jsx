@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { MapPin, Home, Hammer, Sparkles, ChevronLeft, ChevronRight, Zap } from 'lucide-react';
+import { MapPin, Home, Wrench, Zap, ChevronLeft, ChevronRight, Loader } from 'lucide-react';
 import { predictRent, validatePropertyData } from '../services/api';
 
 const DISTRICTS = ['Gasabo'];
@@ -16,39 +16,28 @@ const URBAN_RURAL = ['urban', 'peri_urban', 'rural'];
 const ROAD_ACCESS = ['tarmac', 'murram', 'footpath'];
 
 const STEPS = [
-  { id: 1, label: 'Location', icon: MapPin, emoji: '📍' },
-  { id: 2, label: 'Property', icon: Home, emoji: '🏠' },
-  { id: 3, label: 'Construction', icon: Hammer, emoji: '🔨' },
-  { id: 4, label: 'Amenities', icon: Sparkles, emoji: '✨' },
+  { id: 1, label: 'Location', icon: MapPin },
+  { id: 2, label: 'Property', icon: Home },
+  { id: 3, label: 'Construction', icon: Wrench },
+  { id: 4, label: 'Amenities', icon: Zap },
 ];
-
-const INITIAL_DATA = {
-  district: '',
-  sector: '',
-  urban_rural: '',
-  distance_to_cbd_km: '',
-  is_near_cbd: false,
-  house_type: '',
-  num_bedrooms: 1,
-  num_rooms_total: 2,
-  floor_area_sqm: 30,
-  wall_material: '',
-  floor_material: '',
-  roof_material: '',
-  has_electricity: false,
-  has_piped_water: false,
-  has_indoor_toilet: false,
-  has_kitchen: false,
-  has_parking: false,
-  road_access: '',
-};
 
 const STEP_FIELDS = {
   1: ['district', 'sector', 'urban_rural', 'distance_to_cbd_km'],
   2: ['house_type', 'num_bedrooms', 'num_rooms_total', 'floor_area_sqm'],
   3: ['wall_material', 'floor_material', 'roof_material'],
-  4: ['has_electricity', 'has_piped_water', 'has_indoor_toilet', 'has_kitchen', 'has_parking', 'road_access'],
+  4: ['road_access'],
 };
+
+const INITIAL_DATA = {
+  district: '', sector: '', urban_rural: '', distance_to_cbd_km: '',
+  is_near_cbd: false, house_type: '', num_bedrooms: 1, num_rooms_total: 2,
+  floor_area_sqm: 30, wall_material: '', floor_material: '', roof_material: '',
+  has_electricity: false, has_piped_water: false, has_indoor_toilet: false,
+  has_kitchen: false, has_parking: false, road_access: '',
+};
+
+const fmt = (str) => str.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 
 export default function PredictionForm({ onPredictionComplete }) {
   const [currentStep, setCurrentStep] = useState(1);
@@ -59,55 +48,26 @@ export default function PredictionForm({ onPredictionComplete }) {
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value,
-    }));
-    // Clear field error on change
-    if (errors[name]) {
-      setErrors((prev) => {
-        const next = { ...prev };
-        delete next[name];
-        return next;
-      });
-    }
+    setFormData((prev) => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
+    if (errors[name]) setErrors((prev) => { const n = { ...prev }; delete n[name]; return n; });
   };
 
   const validateStep = (step) => {
     const fields = STEP_FIELDS[step];
-    const stepData = {};
-    fields.forEach((f) => {
-      stepData[f] = formData[f];
-    });
-
     const result = validatePropertyData({ ...formData });
     const stepErrors = {};
-    fields.forEach((field) => {
-      if (result.errors[field]) {
-        stepErrors[field] = result.errors[field];
-      }
-    });
+    fields.forEach((f) => { if (result.errors[f]) stepErrors[f] = result.errors[f]; });
     setErrors(stepErrors);
     return Object.keys(stepErrors).length === 0;
   };
 
-  const handleNext = () => {
-    if (validateStep(currentStep)) {
-      setCurrentStep((prev) => Math.min(prev + 1, 4));
-    }
-  };
-
-  const handleBack = () => {
-    setErrors({});
-    setCurrentStep((prev) => Math.max(prev - 1, 1));
-  };
+  const handleNext = () => { if (validateStep(currentStep)) setCurrentStep((p) => Math.min(p + 1, 4)); };
+  const handleBack = () => { setErrors({}); setCurrentStep((p) => Math.max(p - 1, 1)); };
 
   const handleSubmit = async () => {
     if (!validateStep(4)) return;
-
     setSubmitting(true);
     setSubmitError('');
-
     try {
       const payload = {
         ...formData,
@@ -122,11 +82,8 @@ export default function PredictionForm({ onPredictionComplete }) {
         has_kitchen: formData.has_kitchen ? 1 : 0,
         has_parking: formData.has_parking ? 1 : 0,
       };
-
       const result = await predictRent(payload);
-      if (onPredictionComplete) {
-        onPredictionComplete(result);
-      }
+      if (onPredictionComplete) onPredictionComplete(result);
     } catch (err) {
       setSubmitError(err.userMessage || 'Prediction failed. Please try again.');
     } finally {
@@ -134,430 +91,223 @@ export default function PredictionForm({ onPredictionComplete }) {
     }
   };
 
-  const fieldErrorStyle = 'border-red-500 border-2 bg-red-50';
-  const inputBase =
-    'w-full px-4 py-3 border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] bg-white text-black font-bold focus:outline-none focus:ring-2 focus:ring-[#0095DA] transition-all';
-  const labelBase = 'block font-black text-sm uppercase tracking-wide text-black mb-1';
-  const checkboxBase = 'w-5 h-5 border-2 border-black accent-[#2E7D32]';
-
-  // ── Step Progress ──────────────────────────────────────
-  const ProgressBar = () => (
-    <div className="flex items-center justify-between mb-8">
-      {STEPS.map((step, idx) => {
-        const Icon = step.icon;
-        const isActive = currentStep === step.id;
-        const isDone = currentStep > step.id;
-        return (
-          <div key={step.id} className="flex items-center flex-1">
-            <div
-              className={`flex flex-col items-center gap-1 ${
-                isActive ? 'scale-110' : ''
-              } transition-transform`}
-            >
-              <div
-                className={`w-12 h-12 flex items-center justify-center border-3 border-black font-black text-lg ${
-                  isDone
-                    ? 'bg-[#2E7D32] text-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]'
-                    : isActive
-                    ? 'bg-[#F9A825] text-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]'
-                    : 'bg-white text-gray-400 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]'
-                }`}
-              >
-                {isDone ? (
-                  <span className="text-white text-xl font-black">✓</span>
-                ) : (
-                  <Icon size={20} />
-                )}
-              </div>
-              <span
-                className={`text-xs font-black uppercase tracking-wider ${
-                  isActive ? 'text-black' : 'text-gray-400'
-                }`}
-              >
-                {step.emoji} {step.label}
-              </span>
-            </div>
-            {idx < STEPS.length - 1 && (
-              <div className="flex-1 h-1 mx-2 rounded-full bg-gray-300 relative overflow-hidden">
-                <div
-                  className={`absolute inset-y-0 left-0 rounded-full transition-all duration-500 ${
-                    isDone ? 'bg-[#2E7D32] w-full' : isActive ? 'bg-[#F9A825] w-1/2' : 'w-0'
-                  }`}
-                />
-              </div>
-            )}
-          </div>
-        );
-      })}
-    </div>
-  );
-
-  // ── Step 1: Location ────────────────────────────────────
-  const Step1 = () => (
-    <div className="space-y-5">
-      <h2 className="text-2xl font-black text-black border-b-2 border-black pb-2">
-        📍 Location Details
-      </h2>
-
-      <div>
-        <label className={labelBase} htmlFor="district">District *</label>
-        <select
-          id="district"
-          name="district"
-          value={formData.district}
-          onChange={handleChange}
-          className={`${inputBase} ${errors.district ? fieldErrorStyle : ''}`}
-        >
-          <option value="">-- Select District --</option>
-          {DISTRICTS.map((d) => (
-            <option key={d} value={d}>{d}</option>
-          ))}
-        </select>
-        {errors.district && (
-          <p className="text-red-600 font-black text-xs mt-1 uppercase">{errors.district}</p>
-        )}
-      </div>
-
-      <div>
-        <label className={labelBase} htmlFor="sector">Sector *</label>
-        <select
-          id="sector"
-          name="sector"
-          value={formData.sector}
-          onChange={handleChange}
-          className={`${inputBase} ${errors.sector ? fieldErrorStyle : ''}`}
-        >
-          <option value="">-- Select Sector --</option>
-          {GASABO_SECTORS.map((s) => (
-            <option key={s} value={s}>{s}</option>
-          ))}
-        </select>
-        {errors.sector && (
-          <p className="text-red-600 font-black text-xs mt-1 uppercase">{errors.sector}</p>
-        )}
-      </div>
-
-      <div>
-        <label className={labelBase} htmlFor="urban_rural">Urban / Rural *</label>
-        <select
-          id="urban_rural"
-          name="urban_rural"
-          value={formData.urban_rural}
-          onChange={handleChange}
-          className={`${inputBase} ${errors.urban_rural ? fieldErrorStyle : ''}`}
-        >
-          <option value="">-- Select --</option>
-          {URBAN_RURAL.map((u) => (
-            <option key={u} value={u}>{u.replace('_', ' ').replace(/\b\w/g, (c) => c.toUpperCase())}</option>
-          ))}
-        </select>
-        {errors.urban_rural && (
-          <p className="text-red-600 font-black text-xs mt-1 uppercase">{errors.urban_rural}</p>
-        )}
-      </div>
-
-      <div>
-        <label className={labelBase} htmlFor="distance_to_cbd_km">
-          Distance to Kigali CBD (km) *
-        </label>
-        <input
-          id="distance_to_cbd_km"
-          name="distance_to_cbd_km"
-          type="number"
-          step="0.1"
-          min="0.1"
-          max="100"
-          placeholder="e.g. 4.5"
-          value={formData.distance_to_cbd_km}
-          onChange={handleChange}
-          className={`${inputBase} ${errors.distance_to_cbd_km ? fieldErrorStyle : ''}`}
-        />
-        {errors.distance_to_cbd_km && (
-          <p className="text-red-600 font-black text-xs mt-1 uppercase">{errors.distance_to_cbd_km}</p>
-        )}
-      </div>
-
-      <div className="flex items-center gap-3">
-        <input
-          id="is_near_cbd"
-          name="is_near_cbd"
-          type="checkbox"
-          checked={formData.is_near_cbd}
-          onChange={handleChange}
-          className={checkboxBase}
-        />
-        <label htmlFor="is_near_cbd" className="font-black text-sm uppercase text-black">
-          Near Kigali CBD 🏙️
-        </label>
-      </div>
-    </div>
-  );
-
-  // ── Step 2: Property Details ────────────────────────────
-  const Step2 = () => (
-    <div className="space-y-5">
-      <h2 className="text-2xl font-black text-black border-b-2 border-black pb-2">
-        🏠 Property Details
-      </h2>
-
-      <div>
-        <label className={labelBase} htmlFor="house_type">House Type *</label>
-        <select
-          id="house_type"
-          name="house_type"
-          value={formData.house_type}
-          onChange={handleChange}
-          className={`${inputBase} ${errors.house_type ? fieldErrorStyle : ''}`}
-        >
-          <option value="">-- Select House Type --</option>
-          {HOUSE_TYPES.map((h) => (
-            <option key={h} value={h}>{h.replace('_', ' ').replace(/\b\w/g, (c) => c.toUpperCase())}</option>
-          ))}
-        </select>
-        {errors.house_type && (
-          <p className="text-red-600 font-black text-xs mt-1 uppercase">{errors.house_type}</p>
-        )}
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className={labelBase} htmlFor="num_bedrooms">Bedrooms *</label>
-          <input
-            id="num_bedrooms"
-            name="num_bedrooms"
-            type="number"
-            min="1"
-            max="10"
-            value={formData.num_bedrooms}
-            onChange={handleChange}
-            className={`${inputBase} ${errors.num_bedrooms ? fieldErrorStyle : ''}`}
-          />
-          {errors.num_bedrooms && (
-            <p className="text-red-600 font-black text-xs mt-1 uppercase">{errors.num_bedrooms}</p>
-          )}
-        </div>
-
-        <div>
-          <label className={labelBase} htmlFor="num_rooms_total">Total Rooms *</label>
-          <input
-            id="num_rooms_total"
-            name="num_rooms_total"
-            type="number"
-            min="2"
-            max="20"
-            value={formData.num_rooms_total}
-            onChange={handleChange}
-            className={`${inputBase} ${errors.num_rooms_total ? fieldErrorStyle : ''}`}
-          />
-          {errors.num_rooms_total && (
-            <p className="text-red-600 font-black text-xs mt-1 uppercase">{errors.num_rooms_total}</p>
-          )}
-        </div>
-      </div>
-
-      <div>
-        <label className={labelBase} htmlFor="floor_area_sqm">
-          Floor Area (sqm) *
-        </label>
-        <input
-          id="floor_area_sqm"
-          name="floor_area_sqm"
-          type="number"
-          min="10"
-          max="500"
-          step="1"
-          value={formData.floor_area_sqm}
-          onChange={handleChange}
-          className={`${inputBase} ${errors.floor_area_sqm ? fieldErrorStyle : ''}`}
-        />
-        {errors.floor_area_sqm && (
-          <p className="text-red-600 font-black text-xs mt-1 uppercase">{errors.floor_area_sqm}</p>
-        )}
-      </div>
-    </div>
-  );
-
-  // ── Step 3: Construction ─────────────────────────────────
-  const Step3 = () => (
-    <div className="space-y-5">
-      <h2 className="text-2xl font-black text-black border-b-2 border-black pb-2">
-        🔨 Construction Materials
-      </h2>
-
-      <div>
-        <label className={labelBase} htmlFor="wall_material">Wall Material *</label>
-        <select
-          id="wall_material"
-          name="wall_material"
-          value={formData.wall_material}
-          onChange={handleChange}
-          className={`${inputBase} ${errors.wall_material ? fieldErrorStyle : ''}`}
-        >
-          <option value="">-- Select Wall Material --</option>
-          {WALL_MATERIALS.map((m) => (
-            <option key={m} value={m}>{m.replace('_', ' ').replace(/\b\w/g, (c) => c.toUpperCase())}</option>
-          ))}
-        </select>
-        {errors.wall_material && (
-          <p className="text-red-600 font-black text-xs mt-1 uppercase">{errors.wall_material}</p>
-        )}
-      </div>
-
-      <div>
-        <label className={labelBase} htmlFor="floor_material">Floor Material *</label>
-        <select
-          id="floor_material"
-          name="floor_material"
-          value={formData.floor_material}
-          onChange={handleChange}
-          className={`${inputBase} ${errors.floor_material ? fieldErrorStyle : ''}`}
-        >
-          <option value="">-- Select Floor Material --</option>
-          {FLOOR_MATERIALS.map((m) => (
-            <option key={m} value={m}>{m.charAt(0).toUpperCase() + m.slice(1)}</option>
-          ))}
-        </select>
-        {errors.floor_material && (
-          <p className="text-red-600 font-black text-xs mt-1 uppercase">{errors.floor_material}</p>
-        )}
-      </div>
-
-      <div>
-        <label className={labelBase} htmlFor="roof_material">Roof Material *</label>
-        <select
-          id="roof_material"
-          name="roof_material"
-          value={formData.roof_material}
-          onChange={handleChange}
-          className={`${inputBase} ${errors.roof_material ? fieldErrorStyle : ''}`}
-        >
-          <option value="">-- Select Roof Material --</option>
-          {ROOF_MATERIALS.map((m) => (
-            <option key={m} value={m}>{m.replace('_', ' ').replace(/\b\w/g, (c) => c.toUpperCase())}</option>
-          ))}
-        </select>
-        {errors.roof_material && (
-          <p className="text-red-600 font-black text-xs mt-1 uppercase">{errors.roof_material}</p>
-        )}
-      </div>
-    </div>
-  );
-
-  // ── Step 4: Amenities ────────────────────────────────────
-  const Step4 = () => (
-    <div className="space-y-5">
-      <h2 className="text-2xl font-black text-black border-b-2 border-black pb-2">
-        ✨ Amenities & Access
-      </h2>
-
-      <div className="grid grid-cols-2 gap-4">
-        {[
-          { name: 'has_electricity', label: 'Electricity ⚡' },
-          { name: 'has_piped_water', label: 'Piped Water 🚰' },
-          { name: 'has_indoor_toilet', label: 'Indoor Toilet 🚽' },
-          { name: 'has_kitchen', label: 'Kitchen 🍳' },
-          { name: 'has_parking', label: 'Parking 🚗' },
-        ].map(({ name, label }) => (
-          <div key={name} className="flex items-center gap-3">
-            <input
-              id={name}
-              name={name}
-              type="checkbox"
-              checked={formData[name]}
-              onChange={handleChange}
-              className={checkboxBase}
-            />
-            <label htmlFor={name} className="font-black text-sm uppercase text-black cursor-pointer">
-              {label}
-            </label>
-          </div>
-        ))}
-      </div>
-
-      <div>
-        <label className={labelBase} htmlFor="road_access">Road Access *</label>
-        <select
-          id="road_access"
-          name="road_access"
-          value={formData.road_access}
-          onChange={handleChange}
-          className={`${inputBase} ${errors.road_access ? fieldErrorStyle : ''}`}
-        >
-          <option value="">-- Select Road Type --</option>
-          {ROAD_ACCESS.map((r) => (
-            <option key={r} value={r}>{r.charAt(0).toUpperCase() + r.slice(1)}</option>
-          ))}
-        </select>
-        {errors.road_access && (
-          <p className="text-red-600 font-black text-xs mt-1 uppercase">{errors.road_access}</p>
-        )}
-      </div>
-    </div>
-  );
-
-  const stepContent = {
-    1: <Step1 />,
-    2: <Step2 />,
-    3: <Step3 />,
-    4: <Step4 />,
-  };
+  const inputCls = (field) =>
+    `input-field ${errors[field] ? 'border-red-400 bg-red-50 focus:ring-red-400 focus:border-red-400' : ''}`;
 
   return (
-    <div className="w-full max-w-2xl mx-auto p-6 bg-[#FAF9F6] border-2 border-black shadow-[5px_5px_0px_0px_rgba(0,0,0,1)]">
-      <ProgressBar />
+    <div className="w-full max-w-2xl mx-auto">
+      {/* Step Progress */}
+      <div className="flex items-center mb-8">
+        {STEPS.map((step, idx) => {
+          const Icon = step.icon;
+          const isActive = currentStep === step.id;
+          const isDone = currentStep > step.id;
+          return (
+            <div key={step.id} className="flex items-center flex-1">
+              <div className="flex flex-col items-center gap-1.5">
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
+                  isDone ? 'bg-green-500 text-white' : isActive ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-400'
+                }`}>
+                  {isDone ? (
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                  ) : (
+                    <Icon size={18} />
+                  )}
+                </div>
+                <span className={`text-xs font-semibold hidden sm:block ${isActive ? 'text-blue-600' : isDone ? 'text-green-600' : 'text-slate-400'}`}>
+                  {step.label}
+                </span>
+              </div>
+              {idx < STEPS.length - 1 && (
+                <div className={`flex-1 h-0.5 mx-2 transition-colors ${isDone ? 'bg-green-400' : 'bg-slate-200'}`} />
+              )}
+            </div>
+          );
+        })}
+      </div>
 
-      <div className="min-h-[400px]">{stepContent[currentStep]}</div>
+      {/* Step Content */}
+      <div className="card p-6 md:p-8 min-h-[380px]">
+
+        {/* Step 1: Location */}
+        {currentStep === 1 && (
+          <div className="space-y-5">
+            <div className="mb-6">
+              <h2 className="text-xl font-bold text-slate-900">Location Details</h2>
+              <p className="text-sm text-slate-500 mt-1">Select the property's location in Gasabo District</p>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="label">District</label>
+                <select name="district" value={formData.district} onChange={handleChange} className={inputCls('district')}>
+                  <option value="">Select district</option>
+                  {DISTRICTS.map((d) => <option key={d} value={d}>{d}</option>)}
+                </select>
+                {errors.district && <p className="text-red-500 text-xs mt-1">{errors.district}</p>}
+              </div>
+              <div>
+                <label className="label">Sector</label>
+                <select name="sector" value={formData.sector} onChange={handleChange} className={inputCls('sector')}>
+                  <option value="">Select sector</option>
+                  {GASABO_SECTORS.map((s) => <option key={s} value={s}>{s}</option>)}
+                </select>
+                {errors.sector && <p className="text-red-500 text-xs mt-1">{errors.sector}</p>}
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="label">Area Classification</label>
+                <select name="urban_rural" value={formData.urban_rural} onChange={handleChange} className={inputCls('urban_rural')}>
+                  <option value="">Select type</option>
+                  {URBAN_RURAL.map((u) => <option key={u} value={u}>{fmt(u)}</option>)}
+                </select>
+                {errors.urban_rural && <p className="text-red-500 text-xs mt-1">{errors.urban_rural}</p>}
+              </div>
+              <div>
+                <label className="label">Distance to CBD (km)</label>
+                <input
+                  type="number" name="distance_to_cbd_km" step="0.1" min="0.1" max="100"
+                  placeholder="e.g. 4.5" value={formData.distance_to_cbd_km}
+                  onChange={handleChange} className={inputCls('distance_to_cbd_km')}
+                />
+                {errors.distance_to_cbd_km && <p className="text-red-500 text-xs mt-1">{errors.distance_to_cbd_km}</p>}
+              </div>
+            </div>
+            <label className="flex items-center gap-3 cursor-pointer group">
+              <input type="checkbox" name="is_near_cbd" checked={formData.is_near_cbd} onChange={handleChange}
+                className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
+              <span className="text-sm font-medium text-slate-700 group-hover:text-slate-900">Near Kigali CBD (within 3km)</span>
+            </label>
+          </div>
+        )}
+
+        {/* Step 2: Property */}
+        {currentStep === 2 && (
+          <div className="space-y-5">
+            <div className="mb-6">
+              <h2 className="text-xl font-bold text-slate-900">Property Details</h2>
+              <p className="text-sm text-slate-500 mt-1">Describe the size and type of the property</p>
+            </div>
+            <div>
+              <label className="label">House Type</label>
+              <select name="house_type" value={formData.house_type} onChange={handleChange} className={inputCls('house_type')}>
+                <option value="">Select house type</option>
+                {HOUSE_TYPES.map((h) => <option key={h} value={h}>{fmt(h)}</option>)}
+              </select>
+              {errors.house_type && <p className="text-red-500 text-xs mt-1">{errors.house_type}</p>}
+            </div>
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <label className="label">Bedrooms</label>
+                <input type="number" name="num_bedrooms" min="1" max="10"
+                  value={formData.num_bedrooms} onChange={handleChange} className={inputCls('num_bedrooms')} />
+                {errors.num_bedrooms && <p className="text-red-500 text-xs mt-1">{errors.num_bedrooms}</p>}
+              </div>
+              <div>
+                <label className="label">Total Rooms</label>
+                <input type="number" name="num_rooms_total" min="2" max="20"
+                  value={formData.num_rooms_total} onChange={handleChange} className={inputCls('num_rooms_total')} />
+                {errors.num_rooms_total && <p className="text-red-500 text-xs mt-1">{errors.num_rooms_total}</p>}
+              </div>
+              <div>
+                <label className="label">Floor Area (m²)</label>
+                <input type="number" name="floor_area_sqm" min="10" max="500" step="1"
+                  value={formData.floor_area_sqm} onChange={handleChange} className={inputCls('floor_area_sqm')} />
+                {errors.floor_area_sqm && <p className="text-red-500 text-xs mt-1">{errors.floor_area_sqm}</p>}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Step 3: Construction */}
+        {currentStep === 3 && (
+          <div className="space-y-5">
+            <div className="mb-6">
+              <h2 className="text-xl font-bold text-slate-900">Construction Materials</h2>
+              <p className="text-sm text-slate-500 mt-1">Select the building materials used</p>
+            </div>
+            {[
+              { name: 'wall_material', label: 'Wall Material', options: WALL_MATERIALS },
+              { name: 'floor_material', label: 'Floor Material', options: FLOOR_MATERIALS },
+              { name: 'roof_material', label: 'Roof Material', options: ROOF_MATERIALS },
+            ].map(({ name, label, options }) => (
+              <div key={name}>
+                <label className="label">{label}</label>
+                <select name={name} value={formData[name]} onChange={handleChange} className={inputCls(name)}>
+                  <option value="">Select {label.toLowerCase()}</option>
+                  {options.map((o) => <option key={o} value={o}>{fmt(o)}</option>)}
+                </select>
+                {errors[name] && <p className="text-red-500 text-xs mt-1">{errors[name]}</p>}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Step 4: Amenities */}
+        {currentStep === 4 && (
+          <div className="space-y-5">
+            <div className="mb-6">
+              <h2 className="text-xl font-bold text-slate-900">Amenities & Access</h2>
+              <p className="text-sm text-slate-500 mt-1">Select available utilities and road access</p>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                { name: 'has_electricity', label: 'Electricity' },
+                { name: 'has_piped_water', label: 'Piped Water' },
+                { name: 'has_indoor_toilet', label: 'Indoor Toilet' },
+                { name: 'has_kitchen', label: 'Kitchen' },
+                { name: 'has_parking', label: 'Parking Space' },
+              ].map(({ name, label }) => (
+                <label key={name} className="flex items-center gap-3 p-3 rounded-lg border border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors">
+                  <input type="checkbox" name={name} checked={formData[name]} onChange={handleChange}
+                    className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
+                  <span className="text-sm font-medium text-slate-700">{label}</span>
+                </label>
+              ))}
+            </div>
+            <div>
+              <label className="label">Road Access</label>
+              <select name="road_access" value={formData.road_access} onChange={handleChange} className={inputCls('road_access')}>
+                <option value="">Select road type</option>
+                {ROAD_ACCESS.map((r) => <option key={r} value={r}>{fmt(r)}</option>)}
+              </select>
+              {errors.road_access && <p className="text-red-500 text-xs mt-1">{errors.road_access}</p>}
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Submit Error */}
       {submitError && (
-        <div className="mt-4 p-3 border-2 border-red-500 bg-red-100 text-red-800 font-black text-sm uppercase">
+        <div className="mt-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm font-medium">
           {submitError}
         </div>
       )}
 
-      {/* Navigation Buttons */}
-      <div className="flex items-center justify-between mt-8 pt-4 border-t-2 border-black">
+      {/* Navigation */}
+      <div className="flex items-center justify-between mt-5">
         <button
-          type="button"
-          onClick={handleBack}
-          disabled={currentStep === 1}
-          className={`flex items-center gap-1 px-5 py-3 font-black uppercase text-sm border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-all ${
-            currentStep === 1
-              ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-              : 'bg-white text-black hover:bg-[#F9A825] active:shadow-none active:translate-x-[3px] active:translate-y-[3px]'
+          type="button" onClick={handleBack} disabled={currentStep === 1}
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors ${
+            currentStep === 1 ? 'text-slate-300 cursor-not-allowed' : 'btn-secondary'
           }`}
         >
-          <ChevronLeft size={16} />
-          Back
+          <ChevronLeft size={16} /> Back
         </button>
 
+        <span className="text-xs text-slate-400 font-medium">Step {currentStep} of 4</span>
+
         {currentStep < 4 ? (
-          <button
-            type="button"
-            onClick={handleNext}
-            className="flex items-center gap-1 px-5 py-3 font-black uppercase text-sm border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] bg-[#0095DA] text-white hover:bg-[#007bb0] active:shadow-none active:translate-x-[3px] active:translate-y-[3px] transition-all"
-          >
-            Next
-            <ChevronRight size={16} />
+          <button type="button" onClick={handleNext}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold btn-primary">
+            Next <ChevronRight size={16} />
           </button>
         ) : (
-          <button
-            type="button"
-            onClick={handleSubmit}
-            disabled={submitting}
-            className="flex items-center gap-2 px-6 py-3 font-black uppercase text-sm border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] bg-[#2E7D32] text-white hover:bg-[#1b5e20] active:shadow-none active:translate-x-[4px] active:translate-y-[4px] transition-all disabled:opacity-60 disabled:cursor-not-allowed"
-          >
-            {submitting ? (
-              <>
-                <span className="animate-spin">⏳</span>
-                Predicting...
-              </>
-            ) : (
-              <>
-                <Zap size={18} />
-                Predict Rent
-              </>
-            )}
+          <button type="button" onClick={handleSubmit} disabled={submitting}
+            className="flex items-center gap-2 px-6 py-2.5 rounded-lg text-sm font-semibold bg-green-600 text-white hover:bg-green-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed">
+            {submitting ? <><Loader size={16} className="animate-spin" /> Predicting...</> : <><Zap size={16} /> Get Prediction</>}
           </button>
         )}
       </div>
