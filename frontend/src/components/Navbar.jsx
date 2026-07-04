@@ -1,40 +1,53 @@
 import { useState } from 'react';
 import { NavLink, Link } from 'react-router-dom';
-import { LayoutDashboard, BarChart2, History, Info, Menu, X, MapPin } from 'lucide-react';
+import { LayoutDashboard, BarChart2, History, Info, Menu, X, MapPin, Sun, Moon, Globe } from 'lucide-react';
+import { useApp } from '../context/AppContext';
 
-const navLinks = [
-  { to: '/', label: 'Home', icon: LayoutDashboard },
-  { to: '/predict', label: 'Predict Rent', icon: BarChart2 },
-  { to: '/history', label: 'History', icon: History },
-  { to: '/about', label: 'About', icon: Info },
+const LANGS = [
+  { code: 'en', label: 'EN', full: 'English' },
+  { code: 'fr', label: 'FR', full: 'Français' },
+  { code: 'rw', label: 'RW', full: 'Kinyarwanda' },
 ];
 
 export default function Navbar() {
+  const { theme, toggleTheme, lang, setLang, t } = useApp();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [langOpen, setLangOpen] = useState(false);
+  const isDark = theme === 'dark';
+
+  const navLinks = [
+    { to: '/', label: t('nav_home'), icon: LayoutDashboard },
+    { to: '/predict', label: t('nav_predict'), icon: BarChart2 },
+    { to: '/history', label: t('nav_history'), icon: History },
+    { to: '/about', label: t('nav_about'), icon: Info },
+  ];
 
   const linkClasses = ({ isActive }) =>
     `flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-colors duration-150 ${
       isActive
         ? 'bg-blue-600 text-white'
+        : isDark
+        ? 'text-slate-300 hover:text-white hover:bg-slate-700'
         : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
     }`;
 
   return (
-    <nav className="sticky top-0 z-50 bg-white border-b border-slate-200 shadow-sm">
+    <nav className={`sticky top-0 z-50 border-b shadow-sm transition-colors duration-200 ${isDark ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'}`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
 
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-3 group">
+          <Link to="/" className="flex items-center gap-3 min-w-0">
             <div className="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center flex-shrink-0">
               <BarChart2 size={20} className="text-white" />
             </div>
-            <div className="leading-tight">
-              <span className="font-bold text-slate-900 text-base">RentIQ</span>
-              <span className="font-bold text-blue-600 text-base"> Rwanda</span>
-              <div className="flex items-center gap-1 text-xs text-slate-400 font-medium">
+            <div className="leading-tight min-w-0">
+              <p className={`font-bold text-sm leading-tight truncate ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                House Rent Price Prediction
+              </p>
+              <div className={`flex items-center gap-1 text-xs font-medium ${isDark ? 'text-slate-400' : 'text-slate-400'}`}>
                 <MapPin size={10} />
-                Gasabo District, Kigali
+                {t('nav_subtitle')}
               </div>
             </div>
           </Link>
@@ -49,26 +62,66 @@ export default function Navbar() {
             ))}
           </div>
 
-          {/* Mobile toggle */}
-          <button
-            onClick={() => setMobileOpen(!mobileOpen)}
-            className="md:hidden p-2 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors"
-            aria-label="Toggle menu"
-          >
-            {mobileOpen ? <X size={22} /> : <Menu size={22} />}
-          </button>
+          {/* Controls: Lang + Theme + Mobile */}
+          <div className="flex items-center gap-2">
+
+            {/* Language Switcher */}
+            <div className="relative">
+              <button
+                onClick={() => setLangOpen((p) => !p)}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                  isDark ? 'text-slate-300 hover:bg-slate-700' : 'text-slate-600 hover:bg-slate-100'
+                }`}
+              >
+                <Globe size={15} />
+                {LANGS.find((l) => l.code === lang)?.label}
+              </button>
+              {langOpen && (
+                <div className={`absolute right-0 mt-1 w-36 rounded-lg border shadow-lg z-50 overflow-hidden ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
+                  {LANGS.map((l) => (
+                    <button
+                      key={l.code}
+                      onClick={() => { setLang(l.code); setLangOpen(false); }}
+                      className={`w-full text-left px-4 py-2.5 text-sm font-medium transition-colors ${
+                        lang === l.code
+                          ? 'bg-blue-600 text-white'
+                          : isDark
+                          ? 'text-slate-300 hover:bg-slate-700'
+                          : 'text-slate-700 hover:bg-slate-50'
+                      }`}
+                    >
+                      {l.full}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Theme Toggle */}
+            <button
+              onClick={toggleTheme}
+              className={`p-2 rounded-lg transition-colors ${isDark ? 'text-yellow-400 hover:bg-slate-700' : 'text-slate-600 hover:bg-slate-100'}`}
+              aria-label="Toggle theme"
+            >
+              {isDark ? <Sun size={18} /> : <Moon size={18} />}
+            </button>
+
+            {/* Mobile toggle */}
+            <button
+              onClick={() => setMobileOpen(!mobileOpen)}
+              className={`md:hidden p-2 rounded-lg transition-colors ${isDark ? 'text-slate-300 hover:bg-slate-700' : 'text-slate-600 hover:bg-slate-100'}`}
+              aria-label="Toggle menu"
+            >
+              {mobileOpen ? <X size={22} /> : <Menu size={22} />}
+            </button>
+          </div>
         </div>
 
         {/* Mobile Menu */}
         {mobileOpen && (
-          <div className="md:hidden pb-4 pt-2 flex flex-col gap-1 border-t border-slate-100">
+          <div className={`md:hidden pb-4 pt-2 flex flex-col gap-1 border-t ${isDark ? 'border-slate-700' : 'border-slate-100'}`}>
             {navLinks.map(({ to, label, icon: Icon }) => (
-              <NavLink
-                key={to}
-                to={to}
-                onClick={() => setMobileOpen(false)}
-                className={linkClasses}
-              >
+              <NavLink key={to} to={to} onClick={() => setMobileOpen(false)} className={linkClasses}>
                 <Icon size={16} />
                 {label}
               </NavLink>
