@@ -20,7 +20,8 @@ from app.routes.history import router as history_router
 from app.models.schemas import HealthResponse
 
 # Get allowed origins from environment
-ALLOWED_ORIGINS = os.getenv('ALLOWED_ORIGINS', 'http://localhost:3000').split(',')
+_env_origins = os.getenv('ALLOWED_ORIGINS', '').split(',') if os.getenv('ALLOWED_ORIGINS') else []
+ALLOWED_ORIGINS = list(filter(None, _env_origins))
 
 
 @asynccontextmanager
@@ -136,11 +137,12 @@ app = FastAPI(
 )
 
 # Configure CORS
-ALLOWED_ORIGINS_LIST = ALLOWED_ORIGINS + [
+ALLOWED_ORIGINS_LIST = list(set(ALLOWED_ORIGINS + [
+    "https://gasabohouserentpricepredictor.pages.dev",
     "http://localhost:3000",
     "http://localhost:5173",
     "http://127.0.0.1:3000",
-]
+]))
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS_LIST,
