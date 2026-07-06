@@ -71,7 +71,7 @@ class PredictionRequest(BaseModel):
     sector: str = Field(..., min_length=2, max_length=50, description="Sector within the district")
     house_type: HouseType = Field(..., description="Type of housing structure")
     num_bedrooms: int = Field(..., ge=1, le=10, description="Number of bedrooms (1-10)")
-    num_rooms_total: int = Field(..., ge=2, le=20, description="Total number of rooms (2-20)")
+    num_rooms_total: int = Field(..., ge=1, le=20, description="Total number of rooms (1-20)")
     floor_area_sqm: float = Field(..., ge=10.0, le=500.0, description="Floor area in square meters (10-500)")
     wall_material: WallMaterial = Field(..., description="Primary wall construction material")
     floor_material: FloorMaterial = Field(..., description="Primary floor material")

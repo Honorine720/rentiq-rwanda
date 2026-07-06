@@ -12,7 +12,7 @@ const ROOF_MATERIALS = ['iron_sheet','tiles','grass','concrete'];
 const URBAN_RURAL = ['urban','peri_urban','rural'];
 const ROAD_ACCESS = ['tarmac','murram','footpath'];
 const STEP_FIELDS = { 1: ['district','sector','urban_rural','distance_to_cbd_km'], 2: ['house_type','num_bedrooms','num_rooms_total','floor_area_sqm'], 3: ['wall_material','floor_material','roof_material'], 4: ['road_access'] };
-const INITIAL_DATA = { district:'',sector:'',urban_rural:'',distance_to_cbd_km:'',is_near_cbd:false,house_type:'',num_bedrooms:1,num_rooms_total:2,floor_area_sqm:30,wall_material:'',floor_material:'',roof_material:'',has_electricity:false,has_piped_water:false,has_indoor_toilet:false,has_kitchen:false,has_parking:false,road_access:'' };
+const INITIAL_DATA = { district:'',sector:'',urban_rural:'',distance_to_cbd_km:'',is_near_cbd:false,house_type:'',num_bedrooms:1,num_rooms_total:1,floor_area_sqm:30,wall_material:'',floor_material:'',roof_material:'',has_electricity:false,has_piped_water:false,has_indoor_toilet:false,has_kitchen:false,has_parking:false,road_access:'' };
 const fmt = (s) => s.replace(/_/g,' ').replace(/\b\w/g,(c)=>c.toUpperCase());
 
 export default function PredictionForm({ onPredictionComplete }) {
@@ -149,7 +149,7 @@ export default function PredictionForm({ onPredictionComplete }) {
             </div>
             <SelectField name="house_type" labelKey="f_house_type" options={HOUSE_TYPES} />
             <div className="grid grid-cols-3 gap-4">
-              {[['num_bedrooms','f_bedrooms',1,10],['num_rooms_total','f_total_rooms',2,20],['floor_area_sqm','f_floor_area',10,500]].map(([name,lk,min,max])=>(
+              {[['num_bedrooms','f_bedrooms',1,10],['num_rooms_total','f_total_rooms',1,20],['floor_area_sqm','f_floor_area',10,500]].map(([name,lk,min,max])=>(
                 <div key={name}>
                   <label className="label">{t(lk)}</label>
                   <input type="number" name={name} min={min} max={max} value={formData[name]} onChange={handleChange} className={inputCls(name)} />
