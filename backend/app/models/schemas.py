@@ -12,10 +12,6 @@ from enum import Enum
 class District(str, Enum):
     """Rwanda districts supported by the model"""
     GASABO = "Gasabo"
-    KIGALI = "Kigali"
-    RUBAVU = "Rubavu"
-    MUSANZE = "Musanze"
-    HUYE = "Huye"
 
 
 class HouseType(str, Enum):

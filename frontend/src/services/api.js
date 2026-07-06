@@ -64,7 +64,10 @@ apiClient.interceptors.response.use(
           error.userMessage = 'Resource not found.';
           break;
         case 422:
-          error.userMessage = 'Validation error. Please check all required fields.';
+          // Extract the actual Pydantic validation message if available
+          error.userMessage = data?.detail?.[0]?.msg
+            || data?.detail
+            || 'Validation error. Please check your entries and try again.';
           break;
         case 500:
           error.userMessage = 'Server error. Please try again later.';
@@ -229,36 +232,42 @@ export const getPriceTier = (rentRWF) => {
 // Validate property form data
 export const validatePropertyData = (data) => {
   const errors = {};
-  
-  // Required fields
-  const requiredFields = [
-    'district', 'sector', 'house_type', 'num_bedrooms', 'num_rooms_total',
-    'floor_area_sqm', 'wall_material', 'floor_material', 'roof_material',
-    'road_access', 'urban_rural', 'distance_to_cbd_km'
+
+  // String/select fields that must be non-empty strings
+  const selectFields = [
+    'district', 'sector', 'house_type',
+    'wall_material', 'floor_material', 'roof_material',
+    'road_access', 'urban_rural'
   ];
-  
-  requiredFields.forEach(field => {
-    if (!data[field] && data[field] !== 0) {
-      errors[field] = 'This field is required';
-    }
+  selectFields.forEach(field => {
+    if (!data[field]) errors[field] = 'This field is required';
   });
-  
-  if (data.num_bedrooms && (data.num_bedrooms < 1 || data.num_bedrooms > 10)) {
+
+  // Numeric fields that must be present and > 0
+  if (!data.distance_to_cbd_km && data.distance_to_cbd_km !== 0)
+    errors.distance_to_cbd_km = 'This field is required';
+
+  if (data.num_bedrooms === '' || data.num_bedrooms === undefined || data.num_bedrooms === null)
+    errors.num_bedrooms = 'This field is required';
+
+  if (data.num_rooms_total === '' || data.num_rooms_total === undefined || data.num_rooms_total === null)
+    errors.num_rooms_total = 'This field is required';
+
+  if (data.floor_area_sqm === '' || data.floor_area_sqm === undefined || data.floor_area_sqm === null)
+    errors.floor_area_sqm = 'This field is required';
+
+  if (data.num_bedrooms && (data.num_bedrooms < 1 || data.num_bedrooms > 10))
     errors.num_bedrooms = 'Must be between 1 and 10';
-  }
-  
-  if (data.num_rooms_total && data.num_bedrooms && data.num_rooms_total < data.num_bedrooms) {
+
+  if (data.num_rooms_total && data.num_bedrooms && data.num_rooms_total < data.num_bedrooms)
     errors.num_rooms_total = 'Must be greater than or equal to bedrooms';
-  }
-  
-  if (data.floor_area_sqm && (data.floor_area_sqm < 10 || data.floor_area_sqm > 500)) {
+
+  if (data.floor_area_sqm && (data.floor_area_sqm < 10 || data.floor_area_sqm > 500))
     errors.floor_area_sqm = 'Must be between 10 and 500 sqm';
-  }
-  
-  if (data.distance_to_cbd_km && (data.distance_to_cbd_km < 0.1 || data.distance_to_cbd_km > 100)) {
+
+  if (data.distance_to_cbd_km && (data.distance_to_cbd_km < 0.1 || data.distance_to_cbd_km > 100))
     errors.distance_to_cbd_km = 'Must be between 0.1 and 100 km';
-  }
-  
+
   return {
     isValid: Object.keys(errors).length === 0,
     errors

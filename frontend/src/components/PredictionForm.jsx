@@ -52,7 +52,22 @@ export default function PredictionForm({ onPredictionComplete }) {
     if (!validateStep(4)) return;
     setSubmitting(true); setSubmitError('');
     try {
-      const payload = { ...formData, distance_to_cbd_km: parseFloat(formData.distance_to_cbd_km), num_bedrooms: parseInt(formData.num_bedrooms,10), num_rooms_total: parseInt(formData.num_rooms_total,10), floor_area_sqm: parseFloat(formData.floor_area_sqm), is_near_cbd: formData.is_near_cbd?1:0, has_electricity: formData.has_electricity?1:0, has_piped_water: formData.has_piped_water?1:0, has_indoor_toilet: formData.has_indoor_toilet?1:0, has_kitchen: formData.has_kitchen?1:0, has_parking: formData.has_parking?1:0 };
+      const bedrooms = parseInt(formData.num_bedrooms, 10) || 1;
+      const rooms = parseInt(formData.num_rooms_total, 10) || bedrooms + 1;
+      const payload = {
+        ...formData,
+        district: formData.district || 'Gasabo',
+        distance_to_cbd_km: parseFloat(formData.distance_to_cbd_km) || 5.0,
+        num_bedrooms: bedrooms,
+        num_rooms_total: Math.max(rooms, bedrooms),
+        floor_area_sqm: parseFloat(formData.floor_area_sqm) || 30.0,
+        is_near_cbd: formData.is_near_cbd ? 1 : 0,
+        has_electricity: formData.has_electricity ? 1 : 0,
+        has_piped_water: formData.has_piped_water ? 1 : 0,
+        has_indoor_toilet: formData.has_indoor_toilet ? 1 : 0,
+        has_kitchen: formData.has_kitchen ? 1 : 0,
+        has_parking: formData.has_parking ? 1 : 0,
+      };
       const result = await predictRent(payload);
       if (onPredictionComplete) onPredictionComplete(result);
     } catch (err) {

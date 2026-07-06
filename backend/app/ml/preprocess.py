@@ -23,6 +23,15 @@ NUMERICAL_FEATURES = [
     'area_per_bedroom'
 ]
 
+# Raw features sent by the API (before engineering)
+RAW_API_FEATURES = [
+    'num_bedrooms', 'num_rooms_total', 'floor_area_sqm', 'distance_to_cbd_km',
+    'district', 'sector', 'house_type', 'wall_material', 'floor_material',
+    'roof_material', 'road_access', 'urban_rural',
+    'has_electricity', 'has_piped_water', 'has_indoor_toilet',
+    'has_kitchen', 'has_parking', 'is_near_cbd'
+]
+
 CATEGORICAL_FEATURES = [
     'district',
     'sector',
@@ -190,6 +199,22 @@ def validate_input_data(df: pd.DataFrame) -> tuple[bool, str]:
     return True, ""
 
 
+def engineer_features(data_dict: dict) -> dict:
+    """
+    Add engineered features to a raw input dict before preprocessing.
+    Mirrors the feature engineering done in train.py.
+    """
+    d = dict(data_dict)
+    d['utility_score'] = int(d.get('has_electricity', 0)) + int(d.get('has_piped_water', 0)) + \
+                         int(d.get('has_indoor_toilet', 0)) + int(d.get('has_kitchen', 0))
+    wall_quality = {'concrete': 3, 'brick': 2, 'mixed': 1, 'mud_brick': 0, 'wood': 0}
+    d['material_quality'] = wall_quality.get(d.get('wall_material', ''), 1)
+    bedrooms = max(1, int(d.get('num_bedrooms', 1)))
+    d['rooms_per_bedroom'] = round(int(d.get('num_rooms_total', bedrooms)) / bedrooms, 2)
+    d['area_per_bedroom'] = round(float(d.get('floor_area_sqm', 30)) / bedrooms, 2)
+    return d
+
+
 def preprocess_input(data_dict: dict, preprocessor_path: str = './models_saved/preprocessor.pkl') -> np.ndarray:
     """
     Preprocess a single input dictionary for prediction
@@ -201,6 +226,9 @@ def preprocess_input(data_dict: dict, preprocessor_path: str = './models_saved/p
     Returns:
         Preprocessed feature array ready for prediction
     """
+    # Engineer features before validation
+    data_dict = engineer_features(data_dict)
+
     # Convert dict to dataframe
     df = pd.DataFrame([data_dict])
     
