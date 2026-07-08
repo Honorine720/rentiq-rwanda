@@ -14,14 +14,20 @@ const FEATURE_LABELS = {
   floor_area_sqm: 'Floor Area (sqm)',
   num_bedrooms: 'Number of Bedrooms',
   num_rooms_total: 'Total Rooms',
+  has_fence: 'Has Fence / Perimeter Wall',
+  has_lightning_rod: 'Has Lightning Rod',
+  has_security_guard: 'Has Security Guard',
+  has_water_tank: 'Has Water Storage Tank',
+  has_backup_generator: 'Has Backup Generator',
 };
 
 const formatFeatureName = (feature) => {
   if (FEATURE_LABELS[feature]) return FEATURE_LABELS[feature];
   // Handle one-hot encoded names like "house_type_villa" → "House Type: Villa"
-  const knownPrefixes = ['house_type', 'wall_material', 'floor_material', 'roof_material',
+  const knownPrefixes = ['house_type', 'compound_type', 'wall_material', 'floor_material', 'roof_material',
     'road_access', 'urban_rural', 'sector', 'district', 'has_electricity',
-    'has_water', 'has_toilet', 'has_kitchen', 'has_parking'];
+    'has_water', 'has_toilet', 'has_kitchen', 'has_parking', 'has_fence',
+    'has_lightning', 'has_security', 'has_water_tank', 'has_backup'];
   for (const prefix of knownPrefixes) {
     if (feature.startsWith(prefix + '_')) {
       const label = prefix.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());

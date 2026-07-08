@@ -26,16 +26,19 @@ NUMERICAL_FEATURES = [
 # Raw features sent by the API (before engineering)
 RAW_API_FEATURES = [
     'num_bedrooms', 'num_rooms_total', 'floor_area_sqm', 'distance_to_cbd_km',
-    'district', 'sector', 'house_type', 'wall_material', 'floor_material',
+    'district', 'sector', 'house_type', 'compound_type', 'wall_material', 'floor_material',
     'roof_material', 'road_access', 'urban_rural',
     'has_electricity', 'has_piped_water', 'has_indoor_toilet',
-    'has_kitchen', 'has_parking', 'is_near_cbd'
+    'has_kitchen', 'has_parking', 'is_near_cbd',
+    'has_fence', 'has_lightning_rod', 'has_security_guard',
+    'has_water_tank', 'has_backup_generator',
 ]
 
 CATEGORICAL_FEATURES = [
     'district',
     'sector',
     'house_type',
+    'compound_type',
     'wall_material',
     'floor_material',
     'roof_material',
@@ -49,7 +52,12 @@ BOOLEAN_FEATURES = [
     'has_indoor_toilet',
     'has_kitchen',
     'has_parking',
-    'is_near_cbd'
+    'is_near_cbd',
+    'has_fence',
+    'has_lightning_rod',
+    'has_security_guard',
+    'has_water_tank',
+    'has_backup_generator',
 ]
 
 TARGET = 'monthly_rent_rwf'
@@ -206,7 +214,8 @@ def engineer_features(data_dict: dict) -> dict:
     """
     d = dict(data_dict)
     d['utility_score'] = int(d.get('has_electricity', 0)) + int(d.get('has_piped_water', 0)) + \
-                         int(d.get('has_indoor_toilet', 0)) + int(d.get('has_kitchen', 0))
+                         int(d.get('has_indoor_toilet', 0)) + int(d.get('has_kitchen', 0)) + \
+                         int(d.get('has_water_tank', 0)) + int(d.get('has_backup_generator', 0))
     wall_quality = {'concrete': 3, 'brick': 2, 'mixed': 1, 'mud_brick': 0, 'wood': 0}
     d['material_quality'] = wall_quality.get(d.get('wall_material', ''), 1)
     bedrooms = max(1, int(d.get('num_bedrooms', 1)))

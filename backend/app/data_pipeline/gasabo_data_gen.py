@@ -234,6 +234,18 @@ HOUSE_TYPE_PROFILES = {
     'rural':      {'standalone': 0.65, 'shared_compound': 0.28, 'apartment': 0.05, 'villa': 0.02},
 }
 
+# Compound type: how the house sits within its plot
+# 'standalone_fenced' = single house with fence (most private)
+# 'standalone_open'   = single house, no fence
+# 'ghetto'            = multiple small units sharing one plot (imidugudu-style)
+# 'gated_community'   = estate with shared security/gate
+# 'apartment_block'   = multi-storey shared building
+COMPOUND_TYPE_PROFILES = {
+    'urban':      {'gated_community': 0.25, 'apartment_block': 0.35, 'standalone_fenced': 0.25, 'standalone_open': 0.08, 'ghetto': 0.07},
+    'peri_urban': {'standalone_fenced': 0.30, 'standalone_open': 0.25, 'ghetto': 0.28, 'gated_community': 0.10, 'apartment_block': 0.07},
+    'rural':      {'standalone_open': 0.45, 'ghetto': 0.35, 'standalone_fenced': 0.15, 'gated_community': 0.03, 'apartment_block': 0.02},
+}
+
 
 def _sample_categorical(profile: dict) -> str:
     keys = list(profile.keys())
@@ -266,11 +278,28 @@ def calculate_rent(sector: str, profile: dict, features: dict) -> float:
     ) ** (1/3)
 
     # Utilities (additive not multiplicative — prevents compounding inflation)
-    if features['has_electricity']:   base *= 1.18
-    if features['has_piped_water']:   base *= 1.10
-    if features['has_indoor_toilet']: base *= 1.06
-    if features['has_kitchen']:       base *= 1.03
-    if features['has_parking']:       base *= 1.05
+    if features['has_electricity']:      base *= 1.18
+    if features['has_piped_water']:      base *= 1.10
+    if features['has_indoor_toilet']:    base *= 1.06
+    if features['has_kitchen']:          base *= 1.03
+    if features['has_parking']:          base *= 1.05
+
+    # Compound type — how the house sits on its plot
+    compound_mult = {
+        'gated_community':  1.30,  # shared security, maintained estate
+        'standalone_fenced': 1.15, # private, fenced, single unit
+        'apartment_block':  1.05,  # shared building, neutral
+        'standalone_open':  0.95,  # no fence, less private
+        'ghetto':           0.78,  # multiple cramped units on one plot
+    }
+    base *= compound_mult.get(features.get('compound_type', 'standalone_open'), 1.0)
+
+    # Security & infrastructure extras
+    if features.get('has_fence', 0):             base *= 1.08
+    if features.get('has_lightning_rod', 0):     base *= 1.04
+    if features.get('has_security_guard', 0):    base *= 1.12
+    if features.get('has_water_tank', 0):        base *= 1.06
+    if features.get('has_backup_generator', 0):  base *= 1.10
 
     # Distance to CBD penalty
     base *= max(0.60, 1 - features['distance_to_cbd_km'] * 0.015)
@@ -343,12 +372,44 @@ def generate_gasabo_dataset(n_samples: int = 2000) -> pd.DataFrame:
         kitchen = int(np.random.random() < 0.78)
         parking = int(np.random.random() < (0.15 if urban_rural == 'rural' else 0.35))
 
+        # New security & infrastructure features
+        # Fence probability: higher for fenced compound types and urban areas
+        compound_type = _sample_categorical(COMPOUND_TYPE_PROFILES[urban_rural])
+        fence_base = {'standalone_fenced': 0.95, 'gated_community': 0.98, 'apartment_block': 0.70,
+                      'standalone_open': 0.10, 'ghetto': 0.05}
+        has_fence = int(np.random.random() < fence_base.get(compound_type, 0.30))
+
+        # Lightning rod: rare in rural, more common in urban villas/gated
+        lightning_base = 0.55 if (house_type == 'villa' or compound_type == 'gated_community') else \
+                         0.30 if urban_rural == 'urban' else \
+                         0.12 if urban_rural == 'peri_urban' else 0.04
+        has_lightning_rod = int(np.random.random() < lightning_base)
+
+        # Security guard: mainly gated communities and villas
+        security_base = 0.85 if compound_type == 'gated_community' else \
+                        0.60 if house_type == 'villa' else \
+                        0.20 if urban_rural == 'urban' else 0.05
+        has_security_guard = int(np.random.random() < security_base)
+
+        # Water tank: backup water storage — common where piped water is unreliable
+        tank_base = 0.65 if house_type == 'villa' else \
+                    0.40 if urban_rural == 'urban' else \
+                    0.25 if urban_rural == 'peri_urban' else 0.10
+        has_water_tank = int(np.random.random() < tank_base)
+
+        # Backup generator: expensive, mainly villas and gated communities
+        gen_base = 0.55 if house_type == 'villa' else \
+                   0.30 if compound_type == 'gated_community' else \
+                   0.10 if urban_rural == 'urban' else 0.02
+        has_backup_generator = int(np.random.random() < gen_base)
+
         dist_min, dist_max = profile['distance_cbd']
         distance = round(np.random.uniform(dist_min, dist_max), 1)
         is_near_cbd = 1 if distance < 4.0 else 0
 
         features = {
             'house_type': house_type,
+            'compound_type': compound_type,
             'num_bedrooms': bedrooms,
             'floor_area_sqm': area,
             'wall_material': wall,
@@ -359,6 +420,11 @@ def generate_gasabo_dataset(n_samples: int = 2000) -> pd.DataFrame:
             'has_indoor_toilet': toilet,
             'has_kitchen': kitchen,
             'has_parking': parking,
+            'has_fence': has_fence,
+            'has_lightning_rod': has_lightning_rod,
+            'has_security_guard': has_security_guard,
+            'has_water_tank': has_water_tank,
+            'has_backup_generator': has_backup_generator,
             'distance_to_cbd_km': distance,
             'road_access': road,
         }

@@ -6,6 +6,14 @@ import { useApp } from '../context/AppContext';
 const DISTRICTS = ['Gasabo'];
 const GASABO_SECTORS = ['Bumbogo','Gatsata','Gikomero','Gisozi','Jabana','Jali','Kacyiru','Kimihurura','Kimironko','Kinyinya','Ndera','Nduba','Remera','Rusororo','Rutunga'];
 const HOUSE_TYPES = ['standalone','apartment','shared_compound','villa'];
+const COMPOUND_TYPES = ['standalone_fenced','standalone_open','gated_community','apartment_block','ghetto'];
+const COMPOUND_LABELS = {
+  standalone_fenced: 'Standalone with Fence (Private)',
+  standalone_open:   'Standalone, No Fence (Open)',
+  gated_community:   'Gated Community / Estate',
+  apartment_block:   'Apartment Block (Multi-storey)',
+  ghetto:            'Ghetto / Shared Plot (Multiple Units)',
+};
 const WALL_MATERIALS = ['brick','mud_brick','concrete','wood','mixed'];
 const FLOOR_MATERIALS = ['cement','tiles','earth','wood'];
 const ROOF_MATERIALS = ['iron_sheet','tiles','grass','concrete'];
@@ -21,8 +29,8 @@ const LOCATION_ZONES = [
   { label: 'Very Far / Rural Area (18+ km)',        km: 22.0, near: 0, hint: 'e.g. Rutunga, Nduba, Rusororo' },
 ];
 
-const STEP_FIELDS = { 1: ['district','sector','urban_rural','location_zone'], 2: ['house_type','num_bedrooms','num_rooms_total','floor_area_sqm'], 3: ['wall_material','floor_material','roof_material'], 4: ['road_access'] };
-const INITIAL_DATA = { district:'',sector:'',urban_rural:'',location_zone:'',distance_to_cbd_km:5.0,is_near_cbd:0,house_type:'',num_bedrooms:1,num_rooms_total:1,floor_area_sqm:30,wall_material:'',floor_material:'',roof_material:'',has_electricity:false,has_piped_water:false,has_indoor_toilet:false,has_kitchen:false,has_parking:false,road_access:'' };
+const STEP_FIELDS = { 1: ['district','sector','urban_rural','location_zone'], 2: ['house_type','compound_type','num_bedrooms','num_rooms_total','floor_area_sqm'], 3: ['wall_material','floor_material','roof_material'], 4: ['road_access'] };
+const INITIAL_DATA = { district:'',sector:'',urban_rural:'',location_zone:'',distance_to_cbd_km:5.0,is_near_cbd:0,house_type:'',compound_type:'',num_bedrooms:1,num_rooms_total:1,floor_area_sqm:30,wall_material:'',floor_material:'',roof_material:'',has_electricity:false,has_piped_water:false,has_indoor_toilet:false,has_kitchen:false,has_parking:false,has_fence:false,has_lightning_rod:false,has_security_guard:false,has_water_tank:false,has_backup_generator:false,road_access:'' };
 const fmt = (s) => s.replace(/_/g,' ').replace(/\b\w/g,(c)=>c.toUpperCase());
 
 export default function PredictionForm({ onPredictionComplete }) {
@@ -85,6 +93,12 @@ export default function PredictionForm({ onPredictionComplete }) {
         has_indoor_toilet: formData.has_indoor_toilet ? 1 : 0,
         has_kitchen: formData.has_kitchen ? 1 : 0,
         has_parking: formData.has_parking ? 1 : 0,
+        has_fence: formData.has_fence ? 1 : 0,
+        has_lightning_rod: formData.has_lightning_rod ? 1 : 0,
+        has_security_guard: formData.has_security_guard ? 1 : 0,
+        has_water_tank: formData.has_water_tank ? 1 : 0,
+        has_backup_generator: formData.has_backup_generator ? 1 : 0,
+        compound_type: formData.compound_type || 'standalone_open',
       };
       // Remove UI-only field before sending to API
       delete payload.location_zone;
@@ -184,6 +198,14 @@ export default function PredictionForm({ onPredictionComplete }) {
               <p className={`text-sm mt-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{t('prop_sub')}</p>
             </div>
             <SelectField name="house_type" labelKey="f_house_type" options={HOUSE_TYPES} />
+            <div>
+              <label className="label">Compound / Plot Type</label>
+              <select name="compound_type" value={formData.compound_type} onChange={handleChange} className={inputCls('compound_type')}>
+                <option value="">-- Select compound type --</option>
+                {COMPOUND_TYPES.map((c) => <option key={c} value={c}>{COMPOUND_LABELS[c]}</option>)}
+              </select>
+              {errors.compound_type && <p className="text-red-500 text-xs mt-1">{errors.compound_type}</p>}
+            </div>
             <div className="grid grid-cols-3 gap-4">
               {[['num_bedrooms','f_bedrooms',1,10],['num_rooms_total','f_total_rooms',1,20],['floor_area_sqm','f_floor_area',10,500]].map(([name,lk,min,max])=>(
                 <div key={name}>
@@ -217,10 +239,23 @@ export default function PredictionForm({ onPredictionComplete }) {
               <p className={`text-sm mt-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{t('amen_sub')}</p>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              {[['has_electricity','f_electricity'],['has_piped_water','f_water'],['has_indoor_toilet','f_toilet'],['has_kitchen','f_kitchen'],['has_parking','f_parking']].map(([name,lk])=>(
+              {[
+                ['has_electricity','f_electricity'],
+                ['has_piped_water','f_water'],
+                ['has_indoor_toilet','f_toilet'],
+                ['has_kitchen','f_kitchen'],
+                ['has_parking','f_parking'],
+                ['has_fence','Has Fence / Wall Around Property'],
+                ['has_lightning_rod','Has Lightning Rod (Thunder Fighter)'],
+                ['has_security_guard','Has Security Guard'],
+                ['has_water_tank','Has Water Storage Tank'],
+                ['has_backup_generator','Has Backup Generator'],
+              ].map(([name, lkOrLabel]) => (
                 <label key={name} className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${isDark ? 'border-slate-700 hover:bg-slate-700' : 'border-slate-200 hover:bg-slate-50'}`}>
                   <input type="checkbox" name={name} checked={formData[name]} onChange={handleChange} className={checkCls} />
-                  <span className={`text-sm font-medium ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>{t(lk)}</span>
+                  <span className={`text-sm font-medium ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+                    {lkOrLabel.startsWith('f_') ? t(lkOrLabel) : lkOrLabel}
+                  </span>
                 </label>
               ))}
             </div>

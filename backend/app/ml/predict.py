@@ -95,6 +95,8 @@ class RentPredictor:
             property_data.get('has_piped_water', 0),
             property_data.get('has_indoor_toilet', 0),
             property_data.get('has_kitchen', 0),
+            property_data.get('has_water_tank', 0),
+            property_data.get('has_backup_generator', 0),
         ])
         property_data['material_quality'] = {
             'concrete': 3, 'brick': 2, 'mixed': 1, 'mud_brick': 0, 'wood': 0
