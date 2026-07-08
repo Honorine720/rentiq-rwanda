@@ -173,9 +173,7 @@ export const getVersion = async () => {
 
 // Format currency (RWF)
 export const formatRWF = (amount) => {
-  return new Intl.NumberFormat('en-RW', {
-    style: 'currency',
-    currency: 'RWF',
+  return 'RWF ' + new Intl.NumberFormat('en-US', {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(amount);

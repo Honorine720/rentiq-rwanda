@@ -4,6 +4,34 @@ import { formatRWF, formatUSD, getPriceTier } from '../services/api';
 import { BarChart2, Info, RotateCcw, ArrowUpRight, ArrowDownRight } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
+const FEATURE_LABELS = {
+  distance_to_cbd_km: 'Distance from City Centre',
+  is_near_cbd: 'Near City Centre',
+  utility_score: 'Utility Score',
+  material_quality: 'Material Quality',
+  rooms_per_bedroom: 'Rooms per Bedroom',
+  area_per_bedroom: 'Area per Bedroom',
+  floor_area_sqm: 'Floor Area (sqm)',
+  num_bedrooms: 'Number of Bedrooms',
+  num_rooms_total: 'Total Rooms',
+};
+
+const formatFeatureName = (feature) => {
+  if (FEATURE_LABELS[feature]) return FEATURE_LABELS[feature];
+  // Handle one-hot encoded names like "house_type_villa" → "House Type: Villa"
+  const knownPrefixes = ['house_type', 'wall_material', 'floor_material', 'roof_material',
+    'road_access', 'urban_rural', 'sector', 'district', 'has_electricity',
+    'has_water', 'has_toilet', 'has_kitchen', 'has_parking'];
+  for (const prefix of knownPrefixes) {
+    if (feature.startsWith(prefix + '_')) {
+      const label = prefix.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+      const value = feature.slice(prefix.length + 1).replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+      return `${label}: ${value}`;
+    }
+  }
+  return feature.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+};
+
 export default function Predict() {
   const { t, theme } = useApp();
   const isDark = theme === 'dark';
@@ -72,11 +100,7 @@ export default function Predict() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between mb-1">
                         <span className={`text-sm font-semibold truncate ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>
-                          {exp.feature
-                            .replace('distance_to_cbd_km', 'Distance from City Centre')
-                            .replace('is_near_cbd', 'Near City Centre')
-                            .replace(/_/g, ' ')
-                            .replace(/\b\w/g, (c) => c.toUpperCase())}
+                          {formatFeatureName(exp.feature)}
                         </span>
                         <div className={`flex items-center gap-1 text-xs font-bold flex-shrink-0 ml-2 ${isPos ? 'text-green-500' : 'text-red-500'}`}>
                           {isPos ? <ArrowUpRight size={13} /> : <ArrowDownRight size={13} />}
