@@ -55,7 +55,7 @@ export default function Home() {
     <div className="page-bg">
 
       {/* HERO */}
-      <section className={`border-b transition-colors ${isDark ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'}`}>
+      <section className={`border-b transition-colors ${isDark ? 'bg-slate-900/60 border-slate-700/60' : 'bg-white/60 border-slate-200/60'} backdrop-blur-sm`}>
         <div className="max-w-6xl mx-auto px-6 py-16 md:py-24">
           <div className="max-w-3xl">
             <div className="mb-4"><StatusBadge /></div>
@@ -123,7 +123,7 @@ export default function Home() {
       </section>
 
       {/* HOW IT WORKS */}
-      <section className={`border-y py-16 transition-colors ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
+      <section className={`border-y py-16 transition-colors ${isDark ? 'bg-slate-800/60 border-slate-700/60' : 'bg-white/60 border-slate-200/60'} backdrop-blur-sm`}>
         <div className="max-w-6xl mx-auto px-6">
           <div className="text-center mb-12">
             <h2 className={`text-3xl font-bold mb-3 ${isDark ? 'text-white' : 'text-slate-900'}`}>{t('how_title')}</h2>
@@ -157,7 +157,7 @@ export default function Home() {
       </section>
 
       {/* CTA */}
-      <section className="bg-blue-600 py-14">
+      <section className="bg-blue-600/90 backdrop-blur-sm py-14">
         <div className="max-w-3xl mx-auto px-6 text-center">
           <h2 className="text-3xl font-bold text-white mb-3">{t('cta_title')}</h2>
           <p className="text-blue-100 mb-8">{t('cta_sub')}</p>
@@ -168,7 +168,7 @@ export default function Home() {
       </section>
 
       {/* FOOTER */}
-      <footer className={`py-8 transition-colors ${isDark ? 'bg-slate-950' : 'bg-slate-900'}`}>
+      <footer className={`py-8 transition-colors ${isDark ? 'bg-slate-950/90' : 'bg-slate-900/90'} backdrop-blur-sm`}>
         <div className="max-w-6xl mx-auto px-6 flex flex-col items-center gap-3 text-center">
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 rounded bg-blue-600 flex items-center justify-center">
