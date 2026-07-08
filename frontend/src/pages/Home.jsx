@@ -83,7 +83,7 @@ export default function Home() {
             {/* Stats */}
             <div className="mt-12 flex flex-wrap gap-8">
               {[
-                { icon: ShieldCheck, label: t('stat_accuracy'), value: '94.8% R²' },
+                { icon: ShieldCheck, label: t('stat_accuracy'), value: '88.5% R²' },
                 { icon: MapPin, label: t('stat_sectors'), value: '15 Sectors' },
                 { icon: Building2, label: t('stat_types'), value: '4 Types' },
                 { icon: Users, label: t('stat_source'), value: 'NISR / EICV5' },
