@@ -7,13 +7,53 @@ const DISTRICTS = ['Gasabo'];
 const GASABO_SECTORS = ['Bumbogo','Gatsata','Gikomero','Gisozi','Jabana','Jali','Kacyiru','Kimihurura','Kimironko','Kinyinya','Ndera','Nduba','Remera','Rusororo','Rutunga'];
 const HOUSE_TYPES = ['standalone','apartment','shared_compound','villa'];
 const COMPOUND_TYPES = ['standalone_fenced','standalone_open','gated_community','apartment_block','ghetto'];
-const COMPOUND_LABELS = {
-  standalone_fenced: 'Standalone with Fence (Private)',
-  standalone_open:   'Standalone, No Fence (Open)',
-  gated_community:   'Gated Community / Estate',
-  apartment_block:   'Apartment Block (Multi-storey)',
-  ghetto:            'Ghetto / Shared Plot (Multiple Units)',
-};
+
+// Single unified arrangement picker — sets both house_type + compound_type internally
+// This removes the confusion of two overlapping dropdowns
+const PROPERTY_ARRANGEMENTS = [
+  {
+    value: 'villa_gated',
+    label: '🏰 Villa in Gated Estate',
+    desc: 'Luxury standalone house inside a secured estate with shared gate & guard',
+    house_type: 'villa',
+    compound_type: 'gated_community',
+  },
+  {
+    value: 'standalone_fenced',
+    label: '🏠 Standalone House with Fence',
+    desc: 'Single house on its own plot, surrounded by a perimeter wall or fence',
+    house_type: 'standalone',
+    compound_type: 'standalone_fenced',
+  },
+  {
+    value: 'standalone_open',
+    label: '🏡 Standalone House, No Fence',
+    desc: 'Single house on its own plot, open — no perimeter wall',
+    house_type: 'standalone',
+    compound_type: 'standalone_open',
+  },
+  {
+    value: 'apartment',
+    label: '🏢 Apartment / Flat',
+    desc: 'Unit inside a multi-storey building shared with other tenants',
+    house_type: 'apartment',
+    compound_type: 'apartment_block',
+  },
+  {
+    value: 'shared_compound',
+    label: '🏘️ Shared Compound (Multiple Houses)',
+    desc: 'Several separate houses sharing one plot/yard — common in peri-urban areas',
+    house_type: 'shared_compound',
+    compound_type: 'standalone_open',
+  },
+  {
+    value: 'ghetto',
+    label: '🏚️ Ghetto / Ibikingi (Cramped Units)',
+    desc: 'Many small rooms/units packed on one plot, shared facilities — lowest cost',
+    house_type: 'shared_compound',
+    compound_type: 'ghetto',
+  },
+];
 const WALL_MATERIALS = ['brick','mud_brick','concrete','wood','mixed'];
 const FLOOR_MATERIALS = ['cement','tiles','earth','wood'];
 const ROOF_MATERIALS = ['iron_sheet','tiles','grass','concrete'];
@@ -29,8 +69,8 @@ const LOCATION_ZONES = [
   { label: 'Very Far / Rural Area (18+ km)',        km: 22.0, near: 0, hint: 'e.g. Rutunga, Nduba, Rusororo' },
 ];
 
-const STEP_FIELDS = { 1: ['district','sector','urban_rural','location_zone'], 2: ['house_type','compound_type','num_bedrooms','num_rooms_total','floor_area_sqm'], 3: ['wall_material','floor_material','roof_material'], 4: ['road_access'] };
-const INITIAL_DATA = { district:'',sector:'',urban_rural:'',location_zone:'',distance_to_cbd_km:5.0,is_near_cbd:0,house_type:'',compound_type:'',num_bedrooms:1,num_rooms_total:1,floor_area_sqm:30,wall_material:'',floor_material:'',roof_material:'',has_electricity:false,has_piped_water:false,has_indoor_toilet:false,has_kitchen:false,has_parking:false,has_fence:false,has_lightning_rod:false,has_security_guard:false,has_water_tank:false,has_backup_generator:false,road_access:'' };
+const STEP_FIELDS = { 1: ['district','sector','urban_rural','location_zone'], 2: ['property_arrangement','num_bedrooms','num_rooms_total','floor_area_sqm'], 3: ['wall_material','floor_material','roof_material'], 4: ['road_access'] };
+const INITIAL_DATA = { district:'',sector:'',urban_rural:'',location_zone:'',distance_to_cbd_km:5.0,is_near_cbd:0,property_arrangement:'',house_type:'',compound_type:'',num_bedrooms:1,num_rooms_total:1,floor_area_sqm:30,wall_material:'',floor_material:'',roof_material:'',has_electricity:false,has_piped_water:false,has_indoor_toilet:false,has_kitchen:false,has_parking:false,has_fence:false,has_lightning_rod:false,has_security_guard:false,has_water_tank:false,has_backup_generator:false,road_access:'' };
 const fmt = (s) => s.replace(/_/g,' ').replace(/\b\w/g,(c)=>c.toUpperCase());
 
 export default function PredictionForm({ onPredictionComplete }) {
@@ -58,6 +98,14 @@ export default function PredictionForm({ onPredictionComplete }) {
         location_zone: value,
         distance_to_cbd_km: zone ? zone.km : 5.0,
         is_near_cbd: zone ? zone.near : 0,
+      }));
+    } else if (name === 'property_arrangement') {
+      const arr = PROPERTY_ARRANGEMENTS.find((a) => a.value === value);
+      setFormData((p) => ({
+        ...p,
+        property_arrangement: value,
+        house_type: arr ? arr.house_type : '',
+        compound_type: arr ? arr.compound_type : '',
       }));
     } else {
       setFormData((p) => ({ ...p, [name]: type === 'checkbox' ? checked : value }));
@@ -99,9 +147,11 @@ export default function PredictionForm({ onPredictionComplete }) {
         has_water_tank: formData.has_water_tank ? 1 : 0,
         has_backup_generator: formData.has_backup_generator ? 1 : 0,
         compound_type: formData.compound_type || 'standalone_open',
+        house_type: formData.house_type || 'standalone',
       };
-      // Remove UI-only field before sending to API
+      // Remove UI-only fields before sending to API
       delete payload.location_zone;
+      delete payload.property_arrangement;
       const result = await predictRent(payload);
       if (onPredictionComplete) onPredictionComplete(result);
     } catch (err) {
@@ -193,19 +243,42 @@ export default function PredictionForm({ onPredictionComplete }) {
         {/* Step 2 */}
         {currentStep === 2 && (
           <div className="space-y-5">
-            <div className="mb-6">
+            <div className="mb-4">
               <h2 className={`text-xl font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>{t('prop_title')}</h2>
               <p className={`text-sm mt-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{t('prop_sub')}</p>
             </div>
-            <SelectField name="house_type" labelKey="f_house_type" options={HOUSE_TYPES} />
+
+            {/* Unified property arrangement picker */}
             <div>
-              <label className="label">Compound / Plot Type</label>
-              <select name="compound_type" value={formData.compound_type} onChange={handleChange} className={inputCls('compound_type')}>
-                <option value="">-- Select compound type --</option>
-                {COMPOUND_TYPES.map((c) => <option key={c} value={c}>{COMPOUND_LABELS[c]}</option>)}
-              </select>
-              {errors.compound_type && <p className="text-red-500 text-xs mt-1">{errors.compound_type}</p>}
+              <label className="label">How is this property arranged?</label>
+              <div className="grid grid-cols-1 gap-2">
+                {PROPERTY_ARRANGEMENTS.map((arr) => (
+                  <label
+                    key={arr.value}
+                    className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-all ${
+                      formData.property_arrangement === arr.value
+                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-500'
+                        : isDark ? 'border-slate-700 hover:border-slate-500 hover:bg-slate-700/50' : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="property_arrangement"
+                      value={arr.value}
+                      checked={formData.property_arrangement === arr.value}
+                      onChange={handleChange}
+                      className="mt-0.5 w-4 h-4 text-blue-600 border-slate-300 focus:ring-blue-500 flex-shrink-0"
+                    />
+                    <div className="min-w-0">
+                      <p className={`text-sm font-semibold ${isDark ? 'text-white' : 'text-slate-800'}`}>{arr.label}</p>
+                      <p className={`text-xs mt-0.5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{arr.desc}</p>
+                    </div>
+                  </label>
+                ))}
+              </div>
+              {errors.property_arrangement && <p className="text-red-500 text-xs mt-1">{errors.property_arrangement}</p>}
             </div>
+
             <div className="grid grid-cols-3 gap-4">
               {[['num_bedrooms','f_bedrooms',1,10],['num_rooms_total','f_total_rooms',1,20],['floor_area_sqm','f_floor_area',10,500]].map(([name,lk,min,max])=>(
                 <div key={name}>

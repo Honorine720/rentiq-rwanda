@@ -233,7 +233,7 @@ export const validatePropertyData = (data) => {
 
   // String/select fields that must be non-empty strings
   const selectFields = [
-    'district', 'sector', 'house_type',
+    'district', 'sector',
     'wall_material', 'floor_material', 'roof_material',
     'road_access', 'urban_rural'
   ];
@@ -244,6 +244,9 @@ export const validatePropertyData = (data) => {
   // Numeric fields that must be present and > 0
   if (!data.location_zone)
     errors.location_zone = 'This field is required';
+
+  if (!data.property_arrangement)
+    errors.property_arrangement = 'Please select how the property is arranged';
 
   if (data.num_bedrooms === '' || data.num_bedrooms === undefined || data.num_bedrooms === null)
     errors.num_bedrooms = 'This field is required';
