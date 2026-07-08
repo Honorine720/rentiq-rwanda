@@ -11,8 +11,18 @@ const FLOOR_MATERIALS = ['cement','tiles','earth','wood'];
 const ROOF_MATERIALS = ['iron_sheet','tiles','grass','concrete'];
 const URBAN_RURAL = ['urban','peri_urban','rural'];
 const ROAD_ACCESS = ['tarmac','murram','footpath'];
-const STEP_FIELDS = { 1: ['district','sector','urban_rural','distance_to_cbd_km'], 2: ['house_type','num_bedrooms','num_rooms_total','floor_area_sqm'], 3: ['wall_material','floor_material','roof_material'], 4: ['road_access'] };
-const INITIAL_DATA = { district:'',sector:'',urban_rural:'',distance_to_cbd_km:'',is_near_cbd:false,house_type:'',num_bedrooms:1,num_rooms_total:1,floor_area_sqm:30,wall_material:'',floor_material:'',roof_material:'',has_electricity:false,has_piped_water:false,has_indoor_toilet:false,has_kitchen:false,has_parking:false,road_access:'' };
+
+// Location zones — client-friendly labels that map to distance_to_cbd_km + is_near_cbd
+const LOCATION_ZONES = [
+  { label: 'Very Close to City Centre (0–2 km)',   km: 1.0,  near: 1, hint: 'e.g. Kacyiru, Kimihurura' },
+  { label: 'Close to City Centre (2–5 km)',         km: 3.5,  near: 1, hint: 'e.g. Remera, Gisozi' },
+  { label: 'Moderate Distance (5–10 km)',           km: 7.5,  near: 0, hint: 'e.g. Kimironko, Kinyinya' },
+  { label: 'Far from City Centre (10–18 km)',       km: 13.0, near: 0, hint: 'e.g. Ndera, Jabana, Bumbogo' },
+  { label: 'Very Far / Rural Area (18+ km)',        km: 22.0, near: 0, hint: 'e.g. Rutunga, Nduba, Rusororo' },
+];
+
+const STEP_FIELDS = { 1: ['district','sector','urban_rural','location_zone'], 2: ['house_type','num_bedrooms','num_rooms_total','floor_area_sqm'], 3: ['wall_material','floor_material','roof_material'], 4: ['road_access'] };
+const INITIAL_DATA = { district:'',sector:'',urban_rural:'',location_zone:'',distance_to_cbd_km:5.0,is_near_cbd:0,house_type:'',num_bedrooms:1,num_rooms_total:1,floor_area_sqm:30,wall_material:'',floor_material:'',roof_material:'',has_electricity:false,has_piped_water:false,has_indoor_toilet:false,has_kitchen:false,has_parking:false,road_access:'' };
 const fmt = (s) => s.replace(/_/g,' ').replace(/\b\w/g,(c)=>c.toUpperCase());
 
 export default function PredictionForm({ onPredictionComplete }) {
@@ -33,7 +43,17 @@ export default function PredictionForm({ onPredictionComplete }) {
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setFormData((p) => ({ ...p, [name]: type === 'checkbox' ? checked : value }));
+    if (name === 'location_zone') {
+      const zone = LOCATION_ZONES.find((z) => z.label === value);
+      setFormData((p) => ({
+        ...p,
+        location_zone: value,
+        distance_to_cbd_km: zone ? zone.km : 5.0,
+        is_near_cbd: zone ? zone.near : 0,
+      }));
+    } else {
+      setFormData((p) => ({ ...p, [name]: type === 'checkbox' ? checked : value }));
+    }
     if (errors[name]) setErrors((p) => { const n = { ...p }; delete n[name]; return n; });
   };
 
@@ -52,22 +72,22 @@ export default function PredictionForm({ onPredictionComplete }) {
     if (!validateStep(4)) return;
     setSubmitting(true); setSubmitError('');
     try {
-      const bedrooms = parseInt(formData.num_bedrooms, 10) || 1;
-      const rooms = parseInt(formData.num_rooms_total, 10) || bedrooms + 1;
       const payload = {
         ...formData,
         district: formData.district || 'Gasabo',
-        distance_to_cbd_km: parseFloat(formData.distance_to_cbd_km) || 5.0,
-        num_bedrooms: bedrooms,
-        num_rooms_total: Math.max(rooms, bedrooms),
+        distance_to_cbd_km: formData.distance_to_cbd_km || 5.0,
+        num_bedrooms: parseInt(formData.num_bedrooms, 10) || 1,
+        num_rooms_total: Math.max(parseInt(formData.num_rooms_total, 10) || 2, parseInt(formData.num_bedrooms, 10) || 1),
         floor_area_sqm: parseFloat(formData.floor_area_sqm) || 30.0,
-        is_near_cbd: formData.is_near_cbd ? 1 : 0,
+        is_near_cbd: formData.is_near_cbd,
         has_electricity: formData.has_electricity ? 1 : 0,
         has_piped_water: formData.has_piped_water ? 1 : 0,
         has_indoor_toilet: formData.has_indoor_toilet ? 1 : 0,
         has_kitchen: formData.has_kitchen ? 1 : 0,
         has_parking: formData.has_parking ? 1 : 0,
       };
+      // Remove UI-only field before sending to API
+      delete payload.location_zone;
       const result = await predictRent(payload);
       if (onPredictionComplete) onPredictionComplete(result);
     } catch (err) {
@@ -128,15 +148,31 @@ export default function PredictionForm({ onPredictionComplete }) {
             <div className="grid grid-cols-2 gap-4">
               <SelectField name="urban_rural" labelKey="f_area_class" options={URBAN_RURAL} />
               <div>
-                <label className="label">{t('f_distance')}</label>
-                <input type="number" name="distance_to_cbd_km" step="0.1" min="0.1" max="100" placeholder="e.g. 4.5" value={formData.distance_to_cbd_km} onChange={handleChange} className={inputCls('distance_to_cbd_km')} />
-                {errors.distance_to_cbd_km && <p className="text-red-500 text-xs mt-1">{errors.distance_to_cbd_km}</p>}
+                <label className="label">Location / Distance from City Centre</label>
+                <select name="location_zone" value={formData.location_zone} onChange={handleChange} className={inputCls('location_zone')}>
+                  <option value="">-- Select location zone --</option>
+                  {LOCATION_ZONES.map((z) => (
+                    <option key={z.label} value={z.label}>{z.label}</option>
+                  ))}
+                </select>
+                {formData.location_zone && (
+                  <p className="text-xs mt-1 text-blue-600 dark:text-blue-400 font-medium">
+                    📍 {LOCATION_ZONES.find(z => z.label === formData.location_zone)?.hint}
+                  </p>
+                )}
+                {errors.location_zone && <p className="text-red-500 text-xs mt-1">{errors.location_zone}</p>}
               </div>
             </div>
-            <label className="flex items-center gap-3 cursor-pointer group">
-              <input type="checkbox" name="is_near_cbd" checked={formData.is_near_cbd} onChange={handleChange} className={checkCls} />
-              <span className={`text-sm font-medium ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>{t('f_near_cbd')}</span>
-            </label>
+            {formData.location_zone && (
+              <div className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium ${
+                formData.is_near_cbd
+                  ? 'bg-green-50 text-green-700 border border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800'
+                  : 'bg-slate-50 text-slate-500 border border-slate-200 dark:bg-slate-700 dark:text-slate-400 dark:border-slate-600'
+              }`}>
+                <span>{formData.is_near_cbd ? '✅' : '📍'}</span>
+                <span>{formData.is_near_cbd ? 'Near city centre — higher rent area' : 'Away from city centre — moderate/lower rent area'}</span>
+              </div>
+            )}
           </div>
         )}
 

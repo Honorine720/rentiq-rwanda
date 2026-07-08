@@ -244,8 +244,8 @@ export const validatePropertyData = (data) => {
   });
 
   // Numeric fields that must be present and > 0
-  if (!data.distance_to_cbd_km && data.distance_to_cbd_km !== 0)
-    errors.distance_to_cbd_km = 'This field is required';
+  if (!data.location_zone)
+    errors.location_zone = 'This field is required';
 
   if (data.num_bedrooms === '' || data.num_bedrooms === undefined || data.num_bedrooms === null)
     errors.num_bedrooms = 'This field is required';
@@ -265,8 +265,7 @@ export const validatePropertyData = (data) => {
   if (data.floor_area_sqm && (data.floor_area_sqm < 10 || data.floor_area_sqm > 500))
     errors.floor_area_sqm = 'Must be between 10 and 500 sqm';
 
-  if (data.distance_to_cbd_km && (data.distance_to_cbd_km < 0.1 || data.distance_to_cbd_km > 100))
-    errors.distance_to_cbd_km = 'Must be between 0.1 and 100 km';
+
 
   return {
     isValid: Object.keys(errors).length === 0,

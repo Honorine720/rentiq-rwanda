@@ -72,7 +72,11 @@ export default function Predict() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between mb-1">
                         <span className={`text-sm font-semibold truncate ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>
-                          {exp.feature.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
+                          {exp.feature
+                            .replace('distance_to_cbd_km', 'Distance from City Centre')
+                            .replace('is_near_cbd', 'Near City Centre')
+                            .replace(/_/g, ' ')
+                            .replace(/\b\w/g, (c) => c.toUpperCase())}
                         </span>
                         <div className={`flex items-center gap-1 text-xs font-bold flex-shrink-0 ml-2 ${isPos ? 'text-green-500' : 'text-red-500'}`}>
                           {isPos ? <ArrowUpRight size={13} /> : <ArrowDownRight size={13} />}
