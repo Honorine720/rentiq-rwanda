@@ -152,11 +152,15 @@ class RentPredictor:
         floor = SECTOR_FLOORS.get(sector, 10000)
         predicted_rent_rwf = max(floor, min(cap, predicted_rent_rwf))
 
-        # Confidence interval: ±0.6*MAE covers ~70% of actual errors (tight & honest)
-        mae = self.metadata.get('test_mae', predicted_rent_rwf * 0.10)
-        margin = 0.6 * mae
-        confidence_low = max(floor, predicted_rent_rwf - margin)
-        confidence_high = min(cap, predicted_rent_rwf + margin)
+        # Confidence interval: proportional to predicted rent, tighter at higher values
+        # Uses R² to scale: better model = tighter interval
+        r2 = self.metadata.get('test_r2', 0.85)
+        # Base percentage: ~12% at R²=0.89, shrinks as R² improves toward 1.0
+        base_pct = (1 - r2) * 1.2
+        base_pct = max(0.08, min(0.18, base_pct))  # clamp between 8% and 18%
+        margin = predicted_rent_rwf * base_pct
+        confidence_low = max(floor, round(predicted_rent_rwf - margin, -2))
+        confidence_high = min(cap, round(predicted_rent_rwf + margin, -2))
         
         # Get SHAP explanations
         shap_explanations = self._get_shap_explanations(X_transformed, property_data)
