@@ -90,6 +90,15 @@ class RentPredictor:
         """
         # Compute engineered features server-side
         property_data = dict(property_data)
+
+        # Default new features to 0/safe value if not provided (backwards compatibility)
+        property_data.setdefault('compound_type', 'standalone_open')
+        property_data.setdefault('has_fence', 0)
+        property_data.setdefault('has_lightning_rod', 0)
+        property_data.setdefault('has_security_guard', 0)
+        property_data.setdefault('has_water_tank', 0)
+        property_data.setdefault('has_backup_generator', 0)
+
         property_data['utility_score'] = sum([
             property_data.get('has_electricity', 0),
             property_data.get('has_piped_water', 0),
