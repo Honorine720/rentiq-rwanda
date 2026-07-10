@@ -1,41 +1,68 @@
 import { useState } from 'react';
 import PredictionForm from '../components/PredictionForm';
 import { formatRWF, formatUSD, getPriceTier } from '../services/api';
-import { BarChart2, Info, RotateCcw, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import { TrendingUp, TrendingDown, Info, RotateCcw, Home, MapPin, Zap, Shield, Layers } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
-const FEATURE_LABELS = {
-  distance_to_cbd_km: 'Distance from City Centre',
-  is_near_cbd: 'Near City Centre',
-  utility_score: 'Utility Score',
-  material_quality: 'Material Quality',
-  rooms_per_bedroom: 'Rooms per Bedroom',
-  area_per_bedroom: 'Area per Bedroom',
-  floor_area_sqm: 'Floor Area (sqm)',
-  num_bedrooms: 'Number of Bedrooms',
-  num_rooms_total: 'Total Rooms',
-  has_fence: 'Has Fence / Perimeter Wall',
-  has_lightning_rod: 'Has Lightning Rod',
-  has_security_guard: 'Has Security Guard',
-  has_water_tank: 'Has Water Storage Tank',
-  has_backup_generator: 'Has Backup Generator',
+// Maps raw feature names to friendly labels, icons, and category
+const FEATURE_META = {
+  // Location
+  distance_to_cbd_km:  { label: 'Distance from City Centre', icon: MapPin,  category: 'Location',  tip: 'Closer to the city centre = higher rent' },
+  is_near_cbd:         { label: 'Near City Centre',           icon: MapPin,  category: 'Location',  tip: 'Being within 4 km of CBD adds significant value' },
+  sector:              { label: 'Neighbourhood (Sector)',     icon: MapPin,  category: 'Location',  tip: 'The sector is one of the strongest price drivers' },
+  urban_rural:         { label: 'Urban / Rural Setting',      icon: MapPin,  category: 'Location',  tip: 'Urban properties command much higher rents' },
+  // Size
+  floor_area_sqm:      { label: 'Floor Area (sqm)',           icon: Home,    category: 'Size',      tip: 'Larger homes cost more — every sqm adds value' },
+  num_bedrooms:        { label: 'Number of Bedrooms',         icon: Home,    category: 'Size',      tip: 'More bedrooms = higher rent' },
+  num_rooms_total:     { label: 'Total Rooms',                icon: Home,    category: 'Size',      tip: 'More rooms generally means a larger, pricier home' },
+  area_per_bedroom:    { label: 'Space per Bedroom',          icon: Home,    category: 'Size',      tip: 'Spacious bedrooms indicate a higher-quality home' },
+  rooms_per_bedroom:   { label: 'Rooms per Bedroom',          icon: Home,    category: 'Size',      tip: 'More living space relative to bedrooms' },
+  // Utilities
+  has_electricity:     { label: 'Electricity',                icon: Zap,     category: 'Utilities', tip: 'Electricity is a major price driver in Kigali' },
+  has_piped_water:     { label: 'Piped Water',                icon: Zap,     category: 'Utilities', tip: 'Running water significantly increases rent' },
+  has_indoor_toilet:   { label: 'Indoor Toilet',              icon: Zap,     category: 'Utilities', tip: 'Indoor sanitation adds comfort and value' },
+  has_kitchen:         { label: 'Kitchen',                    icon: Zap,     category: 'Utilities', tip: 'A dedicated kitchen adds convenience' },
+  has_parking:         { label: 'Parking Space',              icon: Zap,     category: 'Utilities', tip: 'Parking is a premium feature in urban areas' },
+  utility_score:       { label: 'Overall Utilities Score',    icon: Zap,     category: 'Utilities', tip: 'Combined score of all utility features' },
+  // Construction
+  wall_material:       { label: 'Wall Material',              icon: Layers,  category: 'Build Quality', tip: 'Concrete/brick walls command higher rents' },
+  floor_material:      { label: 'Floor Material',             icon: Layers,  category: 'Build Quality', tip: 'Tiled floors indicate a higher-quality home' },
+  roof_material:       { label: 'Roof Material',              icon: Layers,  category: 'Build Quality', tip: 'Concrete/tile roofs add durability and value' },
+  material_quality:    { label: 'Overall Build Quality',      icon: Layers,  category: 'Build Quality', tip: 'Combined score of wall, floor and roof quality' },
+  house_type:          { label: 'House Type',                 icon: Home,    category: 'Build Quality', tip: 'Villas and apartments differ greatly in price' },
+  compound_type:       { label: 'Compound Type',              icon: Home,    category: 'Build Quality', tip: 'Gated communities command a premium' },
+  // Security
+  has_fence:           { label: 'Perimeter Wall / Fence',     icon: Shield,  category: 'Security',  tip: 'A fence adds privacy and security value' },
+  has_security_guard:  { label: 'Security Guard',             icon: Shield,  category: 'Security',  tip: 'On-site security is a premium feature' },
+  has_lightning_rod:   { label: 'Lightning Rod',              icon: Shield,  category: 'Security',  tip: 'Indicates a well-maintained, quality property' },
+  has_water_tank:      { label: 'Water Storage Tank',         icon: Shield,  category: 'Security',  tip: 'Backup water supply adds reliability' },
+  has_backup_generator:{ label: 'Backup Generator',           icon: Shield,  category: 'Security',  tip: 'Power backup is a high-end feature' },
+  road_access:         { label: 'Road Access',                icon: MapPin,  category: 'Location',  tip: 'Tarmac road access increases property value' },
 };
 
-const formatFeatureName = (feature) => {
-  if (FEATURE_LABELS[feature]) return FEATURE_LABELS[feature];
-  // Handle one-hot encoded names like "house_type_villa" → "House Type: Villa"
-  const knownPrefixes = ['house_type', 'compound_type', 'wall_material', 'floor_material', 'roof_material',
-    'road_access', 'urban_rural', 'sector', 'district', 'has_electricity',
-    'has_water', 'has_toilet', 'has_kitchen', 'has_parking', 'has_fence',
-    'has_lightning', 'has_security', 'has_water_tank', 'has_backup'];
+const getFeatureMeta = (feature) => {
+  if (FEATURE_META[feature]) return FEATURE_META[feature];
+  // Handle one-hot encoded names like "sector_Kacyiru", "house_type_villa"
+  const knownPrefixes = Object.keys(FEATURE_META);
   for (const prefix of knownPrefixes) {
     if (feature.startsWith(prefix + '_')) {
-      const label = prefix.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
       const value = feature.slice(prefix.length + 1).replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-      return `${label}: ${value}`;
+      const base = FEATURE_META[prefix];
+      return { ...base, label: `${base.label}: ${value}` };
     }
   }
-  return feature.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  // Fallback
+  const label = feature.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  return { label, icon: Info, category: 'Other', tip: '' };
+};
+
+const CATEGORY_COLORS = {
+  Location:     { bar: 'bg-blue-500',   badge: 'bg-blue-100 text-blue-700',   icon: 'text-blue-500' },
+  Size:         { bar: 'bg-violet-500', badge: 'bg-violet-100 text-violet-700', icon: 'text-violet-500' },
+  Utilities:    { bar: 'bg-amber-500',  badge: 'bg-amber-100 text-amber-700',  icon: 'text-amber-500' },
+  'Build Quality': { bar: 'bg-emerald-500', badge: 'bg-emerald-100 text-emerald-700', icon: 'text-emerald-500' },
+  Security:     { bar: 'bg-rose-500',   badge: 'bg-rose-100 text-rose-700',    icon: 'text-rose-500' },
+  Other:        { bar: 'bg-slate-400',  badge: 'bg-slate-100 text-slate-600',  icon: 'text-slate-400' },
 };
 
 export default function Predict() {
@@ -88,38 +115,75 @@ export default function Predict() {
             </div>
           </div>
 
-          {/* SHAP */}
+          {/* Price Factors — redesigned */}
           <div className="card p-6 mb-5">
-            <div className="flex items-center gap-2 mb-5">
-              <BarChart2 size={20} className="text-blue-600" />
-              <h2 className={`font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>{t('result_factors')}</h2>
-              <span className={`ml-auto text-xs font-medium ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>SHAP Values</span>
+            <div className="flex items-center gap-2 mb-1">
+              <TrendingUp size={20} className="text-blue-600" />
+              <h2 className={`font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>What's Driving This Price?</h2>
             </div>
+            <p className={`text-xs mb-5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+              Each bar shows how much a feature <span className="font-semibold text-green-500">raises</span> or <span className="font-semibold text-red-400">lowers</span> the predicted rent compared to an average property.
+            </p>
+
             <div className="space-y-3">
               {prediction.shap_explanations?.map((exp, idx) => {
+                const meta = getFeatureMeta(exp.feature);
+                const colors = CATEGORY_COLORS[meta.category] || CATEGORY_COLORS.Other;
+                const Icon = meta.icon;
                 const isPos = exp.direction === 'positive';
-                const maxImpact = Math.max(...prediction.shap_explanations.map((e) => Math.abs(e.impact)));
+                const totalImpact = prediction.shap_explanations.reduce((s, e) => s + Math.abs(e.impact), 0);
+                const pct = totalImpact > 0 ? Math.round((Math.abs(exp.impact) / totalImpact) * 100) : 0;
+                const maxImpact = Math.max(...prediction.shap_explanations.map(e => Math.abs(e.impact)));
                 const barWidth = Math.round((Math.abs(exp.impact) / maxImpact) * 100);
+
                 return (
-                  <div key={idx} className="flex items-center gap-4">
-                    <span className={`text-xs font-bold w-4 text-right flex-shrink-0 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>{idx + 1}</span>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className={`text-sm font-semibold truncate ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>
-                          {formatFeatureName(exp.feature)}
-                        </span>
-                        <div className={`flex items-center gap-1 text-xs font-bold flex-shrink-0 ml-2 ${isPos ? 'text-green-500' : 'text-red-500'}`}>
-                          {isPos ? <ArrowUpRight size={13} /> : <ArrowDownRight size={13} />}
-                          {formatRWF(Math.abs(exp.impact))}
-                        </div>
-                      </div>
-                      <div className={`h-1.5 rounded-full overflow-hidden ${isDark ? 'bg-slate-700' : 'bg-slate-100'}`}>
-                        <div className={`h-full rounded-full ${isPos ? 'bg-green-400' : 'bg-red-400'}`} style={{ width: `${barWidth}%` }} />
+                  <div key={idx} className={`rounded-xl p-3 ${isDark ? 'bg-slate-800' : 'bg-slate-50'}`}>
+                    <div className="flex items-center gap-3 mb-2">
+                      {/* Rank */}
+                      <span className={`text-xs font-black w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${isDark ? 'bg-slate-700 text-slate-300' : 'bg-white text-slate-500 shadow-sm'}`}>
+                        {idx + 1}
+                      </span>
+                      {/* Icon */}
+                      <Icon size={15} className={`flex-shrink-0 ${colors.icon}`} />
+                      {/* Label */}
+                      <span className={`text-sm font-semibold flex-1 min-w-0 truncate ${isDark ? 'text-slate-100' : 'text-slate-800'}`}>
+                        {meta.label}
+                      </span>
+                      {/* Category badge */}
+                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full flex-shrink-0 hidden sm:block ${colors.badge}`}>
+                        {meta.category}
+                      </span>
+                      {/* Direction + % */}
+                      <div className={`flex items-center gap-1 flex-shrink-0 font-bold text-sm ${isPos ? 'text-green-500' : 'text-red-400'}`}>
+                        {isPos ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
+                        {pct}%
                       </div>
                     </div>
+
+                    {/* Progress bar */}
+                    <div className={`h-2 rounded-full overflow-hidden ml-8 ${isDark ? 'bg-slate-700' : 'bg-slate-200'}`}>
+                      <div
+                        className={`h-full rounded-full transition-all duration-500 ${isPos ? colors.bar : 'bg-red-400'}`}
+                        style={{ width: `${barWidth}%` }}
+                      />
+                    </div>
+
+                    {/* Plain-language tip */}
+                    {meta.tip && (
+                      <p className={`text-xs mt-1.5 ml-8 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                        {isPos ? '↑' : '↓'} {meta.tip}
+                      </p>
+                    )}
                   </div>
                 );
               })}
+            </div>
+
+            {/* Legend */}
+            <div className={`mt-4 pt-4 border-t flex flex-wrap gap-3 ${isDark ? 'border-slate-700' : 'border-slate-100'}`}>
+              {Object.entries(CATEGORY_COLORS).filter(([k]) => k !== 'Other').map(([cat, c]) => (
+                <span key={cat} className={`text-xs font-medium px-2 py-0.5 rounded-full ${c.badge}`}>{cat}</span>
+              ))}
             </div>
           </div>
 
