@@ -38,7 +38,7 @@ SECTOR_PROFILES = {
         'weight': 0.09,
         'urban_rural': ['urban', 'peri_urban'],
         'urban_weights': [0.90, 0.10],
-        'base_rent': 95000,
+        'base_rent': 88000,
         'rent_std': 0.45,
         'electricity_prob': 0.92,
         'piped_water_prob': 0.88,
@@ -49,7 +49,7 @@ SECTOR_PROFILES = {
         'weight': 0.12,
         'urban_rural': ['urban', 'peri_urban'],
         'urban_weights': [0.85, 0.15],
-        'base_rent': 80000,
+        'base_rent': 70000,
         'rent_std': 0.50,
         'electricity_prob': 0.88,
         'piped_water_prob': 0.82,
@@ -60,7 +60,7 @@ SECTOR_PROFILES = {
         'weight': 0.13,
         'urban_rural': ['urban', 'peri_urban'],
         'urban_weights': [0.80, 0.20],
-        'base_rent': 70000,
+        'base_rent': 60000,
         'rent_std': 0.50,
         'electricity_prob': 0.85,
         'piped_water_prob': 0.78,
@@ -71,7 +71,7 @@ SECTOR_PROFILES = {
         'weight': 0.07,
         'urban_rural': ['urban', 'peri_urban'],
         'urban_weights': [0.75, 0.25],
-        'base_rent': 62000,
+        'base_rent': 55000,
         'rent_std': 0.48,
         'electricity_prob': 0.82,
         'piped_water_prob': 0.75,
@@ -83,7 +83,7 @@ SECTOR_PROFILES = {
         'weight': 0.09,
         'urban_rural': ['peri_urban', 'urban', 'rural'],
         'urban_weights': [0.55, 0.30, 0.15],
-        'base_rent': 52000,
+        'base_rent': 48000,
         'rent_std': 0.52,
         'electricity_prob': 0.72,
         'piped_water_prob': 0.65,
@@ -94,7 +94,7 @@ SECTOR_PROFILES = {
         'weight': 0.06,
         'urban_rural': ['peri_urban', 'urban', 'rural'],
         'urban_weights': [0.50, 0.30, 0.20],
-        'base_rent': 48000,
+        'base_rent': 44000,
         'rent_std': 0.50,
         'electricity_prob': 0.68,
         'piped_water_prob': 0.60,
@@ -105,7 +105,7 @@ SECTOR_PROFILES = {
         'weight': 0.07,
         'urban_rural': ['peri_urban', 'rural'],
         'urban_weights': [0.55, 0.45],
-        'base_rent': 36000,
+        'base_rent': 32000,
         'rent_std': 0.48,
         'electricity_prob': 0.60,
         'piped_water_prob': 0.52,
@@ -116,7 +116,7 @@ SECTOR_PROFILES = {
         'weight': 0.07,
         'urban_rural': ['peri_urban', 'rural'],
         'urban_weights': [0.45, 0.55],
-        'base_rent': 30000,
+        'base_rent': 27000,
         'rent_std': 0.45,
         'electricity_prob': 0.55,
         'piped_water_prob': 0.48,
@@ -161,7 +161,7 @@ SECTOR_PROFILES = {
         'weight': 0.04,
         'urban_rural': ['rural'],
         'urban_weights': [1.0],
-        'base_rent': 18000,
+        'base_rent': 22000,
         'rent_std': 0.38,
         'electricity_prob': 0.35,
         'piped_water_prob': 0.28,
@@ -172,7 +172,7 @@ SECTOR_PROFILES = {
         'weight': 0.04,
         'urban_rural': ['rural', 'peri_urban'],
         'urban_weights': [0.65, 0.35],
-        'base_rent': 20000,
+        'base_rent': 23000,
         'rent_std': 0.40,
         'electricity_prob': 0.36,
         'piped_water_prob': 0.30,
@@ -183,7 +183,7 @@ SECTOR_PROFILES = {
         'weight': 0.03,
         'urban_rural': ['rural'],
         'urban_weights': [1.0],
-        'base_rent': 16000,
+        'base_rent': 17000,
         'rent_std': 0.38,
         'electricity_prob': 0.30,
         'piped_water_prob': 0.25,
@@ -263,13 +263,13 @@ def calculate_rent(sector: str, profile: dict, features: dict) -> float:
     # Bedroom multiplier (softer)
     base *= 1 + (features['num_bedrooms'] - 2) * 0.15
 
-    # Floor area contribution (reduced from 350 to 120)
+    # Floor area contribution — increased to reflect 2025/2026 market
     base += features['floor_area_sqm'] * 120
 
-    # Material quality — geometric mean of 3 materials (softer multipliers)
-    wall_mult  = {'concrete': 1.20, 'brick': 1.10, 'mixed': 1.02, 'mud_brick': 0.88, 'wood': 0.82}
-    floor_mult = {'tiles': 1.15, 'cement': 1.05, 'earth': 0.85, 'wood': 1.02}
-    roof_mult  = {'concrete': 1.15, 'tiles': 1.10, 'iron_sheet': 1.00, 'grass': 0.78}
+    # Material quality — stronger multipliers for 2025/2026 market
+    wall_mult  = {'concrete': 1.30, 'brick': 1.18, 'mixed': 1.04, 'mud_brick': 0.85, 'wood': 0.78}
+    floor_mult = {'tiles': 1.22, 'cement': 1.07, 'earth': 0.80, 'wood': 1.02}
+    roof_mult  = {'concrete': 1.22, 'tiles': 1.16, 'iron_sheet': 1.00, 'grass': 0.72}
 
     base *= (
         wall_mult.get(features['wall_material'], 1.0) *
@@ -277,20 +277,20 @@ def calculate_rent(sector: str, profile: dict, features: dict) -> float:
         roof_mult.get(features['roof_material'], 1.0)
     ) ** (1/3)
 
-    # Utilities (additive not multiplicative — prevents compounding inflation)
-    if features['has_electricity']:      base *= 1.18
-    if features['has_piped_water']:      base *= 1.10
+    # Utilities — higher premiums reflecting 2025/2026 demand
+    if features['has_electricity']:      base *= 1.20
+    if features['has_piped_water']:      base *= 1.12
     if features['has_indoor_toilet']:    base *= 1.06
-    if features['has_kitchen']:          base *= 1.03
-    if features['has_parking']:          base *= 1.05
+    if features['has_kitchen']:          base *= 1.04
+    if features['has_parking']:          base *= 1.06
 
     # Compound type — how the house sits on its plot
     compound_mult = {
-        'gated_community':  1.30,  # shared security, maintained estate
-        'standalone_fenced': 1.15, # private, fenced, single unit
-        'apartment_block':  1.05,  # shared building, neutral
-        'standalone_open':  0.95,  # no fence, less private
-        'ghetto':           0.78,  # multiple cramped units on one plot
+        'gated_community':  1.40,  # shared security, maintained estate
+        'standalone_fenced': 1.22, # private, fenced, single unit
+        'apartment_block':  1.08,  # shared building, neutral
+        'standalone_open':  0.97,  # no fence, less private
+        'ghetto':           0.80,  # multiple cramped units on one plot
     }
     base *= compound_mult.get(features.get('compound_type', 'standalone_open'), 1.0)
 
@@ -309,14 +309,14 @@ def calculate_rent(sector: str, profile: dict, features: dict) -> float:
     base *= road_mult.get(features['road_access'], 1.0)
 
     # House type
-    type_mult = {'villa': 1.40, 'apartment': 1.08, 'standalone': 1.00, 'shared_compound': 0.85}
+    type_mult = {'villa': 1.55, 'apartment': 1.15, 'standalone': 1.05, 'shared_compound': 0.88}
     base *= type_mult.get(features['house_type'], 1.0)
 
     # Lognormal noise (tighter: sigma 0.18 instead of 0.3)
     noise = np.random.lognormal(mean=0, sigma=profile['rent_std'] * 0.18)
     base *= noise
 
-    return max(12000, min(700000, round(base / 500) * 500))
+    return max(15000, min(900000, round(base / 500) * 500))
 
 
 def generate_gasabo_dataset(n_samples: int = 2000) -> pd.DataFrame:
