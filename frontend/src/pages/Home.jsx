@@ -132,7 +132,6 @@ export default function Home() {
             </h2>
             <p className={`text-base md:text-lg leading-relaxed max-w-2xl mb-8 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
               AI-powered rent estimates for all <strong className={isDark ? 'text-white' : 'text-slate-800'}>15 sectors of Gasabo District</strong>.
-              Built on real Rwanda housing data — transparent, explainable, and calibrated to the <strong className={isDark ? 'text-white' : 'text-slate-800'}>2025 Kigali market</strong>.
             </p>
 
             {/* CTAs */}
