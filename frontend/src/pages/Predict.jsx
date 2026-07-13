@@ -39,6 +39,17 @@ const FEATURE_META = {
   has_water_tank:      { label: 'Water Storage Tank',         icon: Shield,  category: 'Security',  tip: 'Backup water supply adds reliability' },
   has_backup_generator:{ label: 'Backup Generator',           icon: Shield,  category: 'Security',  tip: 'Power backup is a high-end feature' },
   road_access:         { label: 'Road Access',                icon: MapPin,  category: 'Location',  tip: 'Tarmac road access increases property value' },
+  // Furnishing
+  is_furnished:        { label: 'Fully Furnished',            icon: Home,    category: 'Furnishing', tip: 'Fully furnished homes command 30-80% higher rent' },
+  has_sofa:            { label: 'Sofa / Sitting Set',         icon: Home,    category: 'Furnishing', tip: 'Sofa set included in rent' },
+  has_beds_mattresses: { label: 'Beds with Mattresses',       icon: Home,    category: 'Furnishing', tip: 'Beds and mattresses provided' },
+  has_wardrobe:        { label: 'Wardrobe(s)',                icon: Home,    category: 'Furnishing', tip: 'Wardrobe storage included' },
+  has_dining_set:      { label: 'Dining Table & Chairs',      icon: Home,    category: 'Furnishing', tip: 'Dining set included in rent' },
+  has_tv:              { label: 'Television (TV)',            icon: Zap,     category: 'Furnishing', tip: 'TV included adds significant value' },
+  has_fridge:          { label: 'Refrigerator / Fridge',      icon: Zap,     category: 'Furnishing', tip: 'Fridge included is a strong price driver' },
+  has_washing_machine: { label: 'Washing Machine',            icon: Zap,     category: 'Furnishing', tip: 'Washing machine is a premium appliance' },
+  has_air_conditioning:{ label: 'Air Conditioning (AC)',      icon: Zap,     category: 'Furnishing', tip: 'AC is a luxury feature in Kigali' },
+  has_internet_wifi:   { label: 'Internet / WiFi',            icon: Zap,     category: 'Furnishing', tip: 'WiFi included is increasingly expected' },
 };
 
 const getFeatureMeta = (feature) => {
@@ -63,6 +74,7 @@ const CATEGORY_COLORS = {
   Utilities:    { bar: 'bg-amber-500',  badge: 'bg-amber-100 text-amber-700',  icon: 'text-amber-500' },
   'Build Quality': { bar: 'bg-emerald-500', badge: 'bg-emerald-100 text-emerald-700', icon: 'text-emerald-500' },
   Security:     { bar: 'bg-rose-500',   badge: 'bg-rose-100 text-rose-700',    icon: 'text-rose-500' },
+  Furnishing:   { bar: 'bg-orange-500', badge: 'bg-orange-100 text-orange-700', icon: 'text-orange-500' },
   Other:        { bar: 'bg-slate-400',  badge: 'bg-slate-100 text-slate-600',  icon: 'text-slate-400' },
 };
 

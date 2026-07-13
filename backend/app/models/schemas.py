@@ -85,7 +85,25 @@ class PredictionRequest(BaseModel):
     road_access: RoadAccess = Field(..., description="Type of road access to property")
     is_near_cbd: int = Field(..., ge=0, le=1, description="Near Kigali CBD area (0 or 1)")
     urban_rural: UrbanRural = Field(..., description="Urban/rural classification")
-    
+    compound_type: str = Field("standalone_open", description="Compound/estate type")
+    # Security & infrastructure
+    has_fence: int = Field(0, ge=0, le=1)
+    has_lightning_rod: int = Field(0, ge=0, le=1)
+    has_security_guard: int = Field(0, ge=0, le=1)
+    has_water_tank: int = Field(0, ge=0, le=1)
+    has_backup_generator: int = Field(0, ge=0, le=1)
+    # Furnishing
+    is_furnished: int = Field(0, ge=0, le=1)
+    has_sofa: int = Field(0, ge=0, le=1)
+    has_beds_mattresses: int = Field(0, ge=0, le=1)
+    has_wardrobe: int = Field(0, ge=0, le=1)
+    has_dining_set: int = Field(0, ge=0, le=1)
+    has_tv: int = Field(0, ge=0, le=1)
+    has_fridge: int = Field(0, ge=0, le=1)
+    has_washing_machine: int = Field(0, ge=0, le=1)
+    has_air_conditioning: int = Field(0, ge=0, le=1)
+    has_internet_wifi: int = Field(0, ge=0, le=1)
+
     @validator('num_rooms_total')
     def validate_rooms(cls, v, values):
         """Ensure total rooms >= bedrooms"""
@@ -288,5 +306,21 @@ def prediction_request_to_dict(request: PredictionRequest) -> dict:
         'distance_to_cbd_km': request.distance_to_cbd_km,
         'road_access': request.road_access.value,
         'is_near_cbd': request.is_near_cbd,
-        'urban_rural': request.urban_rural.value
+        'urban_rural': request.urban_rural.value,
+        'compound_type': request.compound_type,
+        'has_fence': request.has_fence,
+        'has_lightning_rod': request.has_lightning_rod,
+        'has_security_guard': request.has_security_guard,
+        'has_water_tank': request.has_water_tank,
+        'has_backup_generator': request.has_backup_generator,
+        'is_furnished': request.is_furnished,
+        'has_sofa': request.has_sofa,
+        'has_beds_mattresses': request.has_beds_mattresses,
+        'has_wardrobe': request.has_wardrobe,
+        'has_dining_set': request.has_dining_set,
+        'has_tv': request.has_tv,
+        'has_fridge': request.has_fridge,
+        'has_washing_machine': request.has_washing_machine,
+        'has_air_conditioning': request.has_air_conditioning,
+        'has_internet_wifi': request.has_internet_wifi,
     }

@@ -32,6 +32,9 @@ RAW_API_FEATURES = [
     'has_kitchen', 'has_parking', 'is_near_cbd',
     'has_fence', 'has_lightning_rod', 'has_security_guard',
     'has_water_tank', 'has_backup_generator',
+    'is_furnished', 'has_sofa', 'has_beds_mattresses', 'has_wardrobe',
+    'has_dining_set', 'has_tv', 'has_fridge', 'has_washing_machine',
+    'has_air_conditioning', 'has_internet_wifi',
 ]
 
 CATEGORICAL_FEATURES = [
@@ -58,6 +61,17 @@ BOOLEAN_FEATURES = [
     'has_security_guard',
     'has_water_tank',
     'has_backup_generator',
+    # Furnishing features
+    'is_furnished',
+    'has_sofa',
+    'has_beds_mattresses',
+    'has_wardrobe',
+    'has_dining_set',
+    'has_tv',
+    'has_fridge',
+    'has_washing_machine',
+    'has_air_conditioning',
+    'has_internet_wifi',
 ]
 
 TARGET = 'monthly_rent_rwf'
@@ -213,14 +227,21 @@ def engineer_features(data_dict: dict) -> dict:
     Mirrors the feature engineering done in train.py.
     """
     d = dict(data_dict)
-    d['utility_score'] = int(d.get('has_electricity', 0)) + int(d.get('has_piped_water', 0)) + \
-                         int(d.get('has_indoor_toilet', 0)) + int(d.get('has_kitchen', 0)) + \
-                         int(d.get('has_water_tank', 0)) + int(d.get('has_backup_generator', 0))
+    d['utility_score'] = (
+        int(d.get('has_electricity', 0)) + int(d.get('has_piped_water', 0)) +
+        int(d.get('has_indoor_toilet', 0)) + int(d.get('has_kitchen', 0)) +
+        int(d.get('has_water_tank', 0)) + int(d.get('has_backup_generator', 0))
+    )
     wall_quality = {'concrete': 3, 'brick': 2, 'mixed': 1, 'mud_brick': 0, 'wood': 0}
     d['material_quality'] = wall_quality.get(d.get('wall_material', ''), 1)
     bedrooms = max(1, int(d.get('num_bedrooms', 1)))
     d['rooms_per_bedroom'] = round(int(d.get('num_rooms_total', bedrooms)) / bedrooms, 2)
     d['area_per_bedroom'] = round(float(d.get('floor_area_sqm', 30)) / bedrooms, 2)
+    # Ensure all furnishing fields default to 0 if not provided
+    for f in ['is_furnished','has_sofa','has_beds_mattresses','has_wardrobe',
+              'has_dining_set','has_tv','has_fridge','has_washing_machine',
+              'has_air_conditioning','has_internet_wifi']:
+        d.setdefault(f, 0)
     return d
 
 

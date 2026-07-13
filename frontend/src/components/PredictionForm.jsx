@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { MapPin, Home, Wrench, Zap, ChevronLeft, ChevronRight, Loader } from 'lucide-react';
+import { MapPin, Home, Wrench, Zap, Sofa, ChevronLeft, ChevronRight, Loader } from 'lucide-react';
 import { predictRent, validatePropertyData } from '../services/api';
 import { useApp } from '../context/AppContext';
 
@@ -69,8 +69,8 @@ const LOCATION_ZONES = [
   { label: 'Very Far / Rural Area (18+ km)',        km: 22.0, near: 0, hint: 'e.g. Rutunga, Nduba, Rusororo' },
 ];
 
-const STEP_FIELDS = { 1: ['district','sector','urban_rural','location_zone'], 2: ['property_arrangement','num_bedrooms','num_rooms_total','floor_area_sqm'], 3: ['wall_material','floor_material','roof_material'], 4: ['road_access'] };
-const INITIAL_DATA = { district:'',sector:'',urban_rural:'',location_zone:'',distance_to_cbd_km:5.0,is_near_cbd:0,property_arrangement:'',house_type:'',compound_type:'',num_bedrooms:1,num_rooms_total:1,floor_area_sqm:30,wall_material:'',floor_material:'',roof_material:'',has_electricity:false,has_piped_water:false,has_indoor_toilet:false,has_kitchen:false,has_parking:false,has_fence:false,has_lightning_rod:false,has_security_guard:false,has_water_tank:false,has_backup_generator:false,road_access:'' };
+const STEP_FIELDS = { 1: ['district','sector','urban_rural','location_zone'], 2: ['property_arrangement','num_bedrooms','num_rooms_total','floor_area_sqm'], 3: ['wall_material','floor_material','roof_material'], 4: ['road_access'], 5: [] };
+const INITIAL_DATA = { district:'',sector:'',urban_rural:'',location_zone:'',distance_to_cbd_km:5.0,is_near_cbd:0,property_arrangement:'',house_type:'',compound_type:'',num_bedrooms:1,num_rooms_total:1,floor_area_sqm:30,wall_material:'',floor_material:'',roof_material:'',has_electricity:false,has_piped_water:false,has_indoor_toilet:false,has_kitchen:false,has_parking:false,has_fence:false,has_lightning_rod:false,has_security_guard:false,has_water_tank:false,has_backup_generator:false,road_access:'',is_furnished:false,has_sofa:false,has_beds_mattresses:false,has_wardrobe:false,has_dining_set:false,has_tv:false,has_fridge:false,has_washing_machine:false,has_air_conditioning:false,has_internet_wifi:false };
 const fmt = (s) => s.replace(/_/g,' ').replace(/\b\w/g,(c)=>c.toUpperCase());
 
 export default function PredictionForm({ onPredictionComplete }) {
@@ -87,6 +87,7 @@ export default function PredictionForm({ onPredictionComplete }) {
     { id: 2, label: t('step_property'), icon: Home },
     { id: 3, label: t('step_construction'), icon: Wrench },
     { id: 4, label: t('step_amenities'), icon: Zap },
+    { id: 5, label: 'Furnishing', icon: Sofa },
   ];
 
   const handleChange = (e) => {
@@ -121,7 +122,7 @@ export default function PredictionForm({ onPredictionComplete }) {
     return Object.keys(stepErrors).length === 0;
   };
 
-  const handleNext = () => { if (validateStep(currentStep)) setCurrentStep((p) => Math.min(p + 1, 4)); };
+  const handleNext = () => { if (validateStep(currentStep)) setCurrentStep((p) => Math.min(p + 1, 5)); };
   const handleBack = () => { setErrors({}); setCurrentStep((p) => Math.max(p - 1, 1)); };
 
   const handleSubmit = async () => {
@@ -148,6 +149,16 @@ export default function PredictionForm({ onPredictionComplete }) {
         has_backup_generator: formData.has_backup_generator ? 1 : 0,
         compound_type: formData.compound_type || 'standalone_open',
         house_type: formData.house_type || 'standalone',
+        is_furnished: formData.is_furnished ? 1 : 0,
+        has_sofa: formData.has_sofa ? 1 : 0,
+        has_beds_mattresses: formData.has_beds_mattresses ? 1 : 0,
+        has_wardrobe: formData.has_wardrobe ? 1 : 0,
+        has_dining_set: formData.has_dining_set ? 1 : 0,
+        has_tv: formData.has_tv ? 1 : 0,
+        has_fridge: formData.has_fridge ? 1 : 0,
+        has_washing_machine: formData.has_washing_machine ? 1 : 0,
+        has_air_conditioning: formData.has_air_conditioning ? 1 : 0,
+        has_internet_wifi: formData.has_internet_wifi ? 1 : 0,
       };
       // Remove UI-only fields before sending to API
       delete payload.location_zone;
@@ -335,6 +346,83 @@ export default function PredictionForm({ onPredictionComplete }) {
             <SelectField name="road_access" labelKey="f_road" options={ROAD_ACCESS} />
           </div>
         )}
+
+        {/* Step 5 — Furnishing */}
+        {currentStep === 5 && (
+          <div className="space-y-5">
+            <div className="mb-4">
+              <h2 className={`text-xl font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>Furnishing & Equipment</h2>
+              <p className={`text-sm mt-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                Select all items <span className="font-semibold">included in the rent</span>. Furnished houses command significantly higher prices in Gasabo.
+              </p>
+            </div>
+
+            {/* Fully Furnished master toggle */}
+            <label className={`flex items-start gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all ${
+              formData.is_furnished
+                ? 'border-amber-500 bg-amber-50 dark:bg-amber-900/20'
+                : isDark ? 'border-slate-700 hover:border-slate-500' : 'border-slate-200 hover:border-slate-300'
+            }`}>
+              <input type="checkbox" name="is_furnished" checked={formData.is_furnished} onChange={handleChange} className="mt-0.5 w-4 h-4 text-amber-500 border-slate-300 focus:ring-amber-500 flex-shrink-0" />
+              <div>
+                <p className={`text-sm font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>🛋️ Fully Furnished</p>
+                <p className={`text-xs mt-0.5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>All furniture and appliances included — sofa, beds, wardrobe, dining set, TV, fridge, etc.</p>
+              </div>
+            </label>
+
+            <p className={`text-xs font-semibold uppercase tracking-wide ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Or select individual items:</p>
+
+            {/* Furniture */}
+            <div>
+              <p className={`text-xs font-semibold mb-2 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>🪑 Furniture</p>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  ['has_sofa',            '🛋️ Sofa / Sitting Room Set'],
+                  ['has_beds_mattresses', '🛏️ Beds with Mattresses'],
+                  ['has_wardrobe',        '🚪 Wardrobe(s)'],
+                  ['has_dining_set',      '🍽️ Dining Table & Chairs'],
+                ].map(([name, label]) => (
+                  <label key={name} className={`flex items-center gap-2.5 p-3 rounded-lg border cursor-pointer transition-colors ${
+                    formData[name] ? 'border-blue-400 bg-blue-50 dark:bg-blue-900/20' : isDark ? 'border-slate-700 hover:bg-slate-700' : 'border-slate-200 hover:bg-slate-50'
+                  }`}>
+                    <input type="checkbox" name={name} checked={formData[name]} onChange={handleChange} className="w-4 h-4 text-blue-600 border-slate-300 focus:ring-blue-500 flex-shrink-0" />
+                    <span className={`text-sm font-medium ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>{label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {/* Electronics & Appliances */}
+            <div>
+              <p className={`text-xs font-semibold mb-2 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>📺 Electronics & Appliances</p>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  ['has_tv',               '📺 Television (TV)'],
+                  ['has_fridge',           '🧊 Refrigerator / Fridge'],
+                  ['has_washing_machine',  '🫧 Washing Machine'],
+                  ['has_air_conditioning', '❄️ Air Conditioning (AC)'],
+                  ['has_internet_wifi',    '📶 Internet / WiFi'],
+                ].map(([name, label]) => (
+                  <label key={name} className={`flex items-center gap-2.5 p-3 rounded-lg border cursor-pointer transition-colors ${
+                    formData[name] ? 'border-blue-400 bg-blue-50 dark:bg-blue-900/20' : isDark ? 'border-slate-700 hover:bg-slate-700' : 'border-slate-200 hover:bg-slate-50'
+                  }`}>
+                    <input type="checkbox" name={name} checked={formData[name]} onChange={handleChange} className="w-4 h-4 text-blue-600 border-slate-300 focus:ring-blue-500 flex-shrink-0" />
+                    <span className={`text-sm font-medium ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>{label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {(formData.is_furnished || formData.has_sofa || formData.has_tv || formData.has_fridge || formData.has_air_conditioning || formData.has_internet_wifi) && (
+              <div className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium border ${
+                isDark ? 'bg-green-900/20 border-green-800 text-green-400' : 'bg-green-50 border-green-200 text-green-700'
+              }`}>
+                <span>✅</span>
+                <span>{formData.is_furnished ? 'Fully furnished — expect significantly higher rent' : `${[formData.has_sofa,formData.has_beds_mattresses,formData.has_wardrobe,formData.has_dining_set,formData.has_tv,formData.has_fridge,formData.has_washing_machine,formData.has_air_conditioning,formData.has_internet_wifi].filter(Boolean).length} item(s) selected — rent adjusted accordingly`}</span>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {submitError && (
@@ -349,8 +437,8 @@ export default function PredictionForm({ onPredictionComplete }) {
           className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors ${currentStep === 1 ? 'text-slate-300 cursor-not-allowed dark:text-slate-600' : 'btn-secondary'}`}>
           <ChevronLeft size={16} />{t('btn_back')}
         </button>
-        <span className={`text-xs font-medium ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>{t('form_step')} {currentStep} {t('form_of')} 4</span>
-        {currentStep < 4 ? (
+        <span className={`text-xs font-medium ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>{t('form_step')} {currentStep} {t('form_of')} 5</span>
+        {currentStep < 5 ? (
           <button type="button" onClick={handleNext} className="flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold btn-primary">
             {t('btn_next')} <ChevronRight size={16} />
           </button>

@@ -323,6 +323,19 @@ def calculate_rent(sector: str, profile: dict, features: dict) -> float:
     noise = np.random.uniform(0.90, 1.10)
     base *= noise
 
+    # Furnishing premiums — flat RWF additions reflecting real Gasabo market
+    # A fully furnished house commands 30-80% more than unfurnished
+    if features.get('is_furnished', 0):        base += 40000  # full package premium
+    if features.get('has_sofa', 0):            base += 8000
+    if features.get('has_beds_mattresses', 0): base += 10000
+    if features.get('has_wardrobe', 0):        base += 5000
+    if features.get('has_dining_set', 0):      base += 5000
+    if features.get('has_tv', 0):              base += 8000
+    if features.get('has_fridge', 0):          base += 10000
+    if features.get('has_washing_machine', 0): base += 12000
+    if features.get('has_air_conditioning', 0):base += 25000
+    if features.get('has_internet_wifi', 0):   base += 10000
+
     # Hard floor 10,000 RWF only — no ceiling
     return max(10000, round(base / 1000) * 1000)
 
@@ -411,6 +424,65 @@ def generate_gasabo_dataset(n_samples: int = 2000) -> pd.DataFrame:
                    0.10 if urban_rural == 'urban' else 0.02
         has_backup_generator = int(np.random.random() < gen_base)
 
+        # Furnishing features — realistic Gasabo market probabilities
+        # Fully furnished = all items included; unfurnished = none
+        # Probabilities scale with house_type and urban_rural
+        if house_type == 'villa' and urban_rural == 'urban':
+            furnished_prob   = 0.55
+            sofa_prob        = 0.80
+            beds_prob        = 0.75
+            wardrobe_prob    = 0.85
+            dining_prob      = 0.75
+            tv_prob          = 0.70
+            fridge_prob      = 0.65
+            washer_prob      = 0.45
+            ac_prob          = 0.50
+            wifi_prob        = 0.70
+        elif house_type == 'apartment' and urban_rural == 'urban':
+            furnished_prob   = 0.40
+            sofa_prob        = 0.65
+            beds_prob        = 0.60
+            wardrobe_prob    = 0.70
+            dining_prob      = 0.55
+            tv_prob          = 0.55
+            fridge_prob      = 0.50
+            washer_prob      = 0.25
+            ac_prob          = 0.20
+            wifi_prob        = 0.55
+        elif urban_rural == 'peri_urban':
+            furnished_prob   = 0.15
+            sofa_prob        = 0.35
+            beds_prob        = 0.30
+            wardrobe_prob    = 0.40
+            dining_prob      = 0.25
+            tv_prob          = 0.30
+            fridge_prob      = 0.20
+            washer_prob      = 0.08
+            ac_prob          = 0.04
+            wifi_prob        = 0.20
+        else:  # rural / standalone basic
+            furnished_prob   = 0.05
+            sofa_prob        = 0.15
+            beds_prob        = 0.12
+            wardrobe_prob    = 0.18
+            dining_prob      = 0.10
+            tv_prob          = 0.12
+            fridge_prob      = 0.08
+            washer_prob      = 0.02
+            ac_prob          = 0.01
+            wifi_prob        = 0.08
+
+        is_furnished        = int(np.random.random() < furnished_prob)
+        has_sofa            = int(is_furnished or np.random.random() < sofa_prob)
+        has_beds_mattresses = int(is_furnished or np.random.random() < beds_prob)
+        has_wardrobe        = int(is_furnished or np.random.random() < wardrobe_prob)
+        has_dining_set      = int(is_furnished or np.random.random() < dining_prob)
+        has_tv              = int(is_furnished or np.random.random() < tv_prob)
+        has_fridge          = int(is_furnished or np.random.random() < fridge_prob)
+        has_washing_machine = int(is_furnished or np.random.random() < washer_prob)
+        has_air_conditioning= int(is_furnished or np.random.random() < ac_prob)
+        has_internet_wifi   = int(is_furnished or np.random.random() < wifi_prob)
+
         dist_min, dist_max = profile['distance_cbd']
         distance = round(np.random.uniform(dist_min, dist_max), 1)
         is_near_cbd = 1 if distance < 4.0 else 0
@@ -433,6 +505,16 @@ def generate_gasabo_dataset(n_samples: int = 2000) -> pd.DataFrame:
             'has_security_guard': has_security_guard,
             'has_water_tank': has_water_tank,
             'has_backup_generator': has_backup_generator,
+            'is_furnished': is_furnished,
+            'has_sofa': has_sofa,
+            'has_beds_mattresses': has_beds_mattresses,
+            'has_wardrobe': has_wardrobe,
+            'has_dining_set': has_dining_set,
+            'has_tv': has_tv,
+            'has_fridge': has_fridge,
+            'has_washing_machine': has_washing_machine,
+            'has_air_conditioning': has_air_conditioning,
+            'has_internet_wifi': has_internet_wifi,
             'distance_to_cbd_km': distance,
             'road_access': road,
         }
