@@ -20,14 +20,15 @@ NUMERICAL_FEATURES = [
     'utility_score',
     'material_quality',
     'rooms_per_bedroom',
-    'area_per_bedroom'
+    'area_per_bedroom',
+    'num_days',
 ]
 
 # Raw features sent by the API (before engineering)
 RAW_API_FEATURES = [
     'num_bedrooms', 'num_rooms_total', 'floor_area_sqm', 'distance_to_cbd_km',
     'district', 'sector', 'house_type', 'compound_type', 'wall_material', 'floor_material',
-    'roof_material', 'road_access', 'urban_rural',
+    'roof_material', 'road_access', 'urban_rural', 'rental_type',
     'has_electricity', 'has_piped_water', 'has_indoor_toilet',
     'has_kitchen', 'has_parking', 'is_near_cbd',
     'has_fence', 'has_lightning_rod', 'has_security_guard',
@@ -35,6 +36,7 @@ RAW_API_FEATURES = [
     'is_furnished', 'has_sofa', 'has_beds_mattresses', 'has_wardrobe',
     'has_dining_set', 'has_tv', 'has_fridge', 'has_washing_machine',
     'has_air_conditioning', 'has_internet_wifi',
+    'num_days',
 ]
 
 CATEGORICAL_FEATURES = [
@@ -46,7 +48,8 @@ CATEGORICAL_FEATURES = [
     'floor_material',
     'roof_material',
     'road_access',
-    'urban_rural'
+    'urban_rural',
+    'rental_type',
 ]
 
 BOOLEAN_FEATURES = [
@@ -222,10 +225,6 @@ def validate_input_data(df: pd.DataFrame) -> tuple[bool, str]:
 
 
 def engineer_features(data_dict: dict) -> dict:
-    """
-    Add engineered features to a raw input dict before preprocessing.
-    Mirrors the feature engineering done in train.py.
-    """
     d = dict(data_dict)
     d['utility_score'] = (
         int(d.get('has_electricity', 0)) + int(d.get('has_piped_water', 0)) +
@@ -237,6 +236,9 @@ def engineer_features(data_dict: dict) -> dict:
     bedrooms = max(1, int(d.get('num_bedrooms', 1)))
     d['rooms_per_bedroom'] = round(int(d.get('num_rooms_total', bedrooms)) / bedrooms, 2)
     d['area_per_bedroom'] = round(float(d.get('floor_area_sqm', 30)) / bedrooms, 2)
+    # Default rental_type and num_days
+    d.setdefault('rental_type', 'monthly')
+    d.setdefault('num_days', 30)
     # Ensure all furnishing fields default to 0 if not provided
     for f in ['is_furnished','has_sofa','has_beds_mattresses','has_wardrobe',
               'has_dining_set','has_tv','has_fridge','has_washing_machine',

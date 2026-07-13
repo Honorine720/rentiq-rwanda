@@ -343,7 +343,8 @@ def calculate_rent(sector: str, profile: dict, features: dict) -> float:
 def generate_gasabo_dataset(n_samples: int = 2000) -> pd.DataFrame:
     """
     Generate Gasabo District housing dataset.
-    Calibrated to NISR EICV5 statistics.
+    Includes monthly, weekly, and daily rental types.
+    Target: total_rent_rwf = price for the chosen rental period.
     """
     print("\n" + "="*60)
     print("🏙️  GASABO DISTRICT DATA GENERATOR")
@@ -353,7 +354,7 @@ def generate_gasabo_dataset(n_samples: int = 2000) -> pd.DataFrame:
     sectors = list(SECTOR_PROFILES.keys())
     raw_weights = [SECTOR_PROFILES[s]['weight'] for s in sectors]
     total = sum(raw_weights)
-    weights = [w / total for w in raw_weights]  # normalize to sum=1
+    weights = [w / total for w in raw_weights]
 
     records = []
 
@@ -366,7 +367,6 @@ def generate_gasabo_dataset(n_samples: int = 2000) -> pd.DataFrame:
             p=profile['urban_weights']
         )
 
-        # Property features
         house_type = _sample_categorical(HOUSE_TYPE_PROFILES[urban_rural])
 
         if house_type == 'villa':
@@ -393,40 +393,32 @@ def generate_gasabo_dataset(n_samples: int = 2000) -> pd.DataFrame:
         kitchen = int(np.random.random() < 0.78)
         parking = int(np.random.random() < (0.15 if urban_rural == 'rural' else 0.35))
 
-        # New security & infrastructure features
-        # Fence probability: higher for fenced compound types and urban areas
         compound_type = _sample_categorical(COMPOUND_TYPE_PROFILES[urban_rural])
         fence_base = {'standalone_fenced': 0.95, 'gated_community': 0.98, 'apartment_block': 0.70,
                       'standalone_open': 0.10, 'ghetto': 0.05}
         has_fence = int(np.random.random() < fence_base.get(compound_type, 0.30))
 
-        # Lightning rod: rare in rural, more common in urban villas/gated
         lightning_base = 0.55 if (house_type == 'villa' or compound_type == 'gated_community') else \
                          0.30 if urban_rural == 'urban' else \
                          0.12 if urban_rural == 'peri_urban' else 0.04
         has_lightning_rod = int(np.random.random() < lightning_base)
 
-        # Security guard: mainly gated communities and villas
         security_base = 0.85 if compound_type == 'gated_community' else \
                         0.60 if house_type == 'villa' else \
                         0.20 if urban_rural == 'urban' else 0.05
         has_security_guard = int(np.random.random() < security_base)
 
-        # Water tank: backup water storage — common where piped water is unreliable
         tank_base = 0.65 if house_type == 'villa' else \
                     0.40 if urban_rural == 'urban' else \
                     0.25 if urban_rural == 'peri_urban' else 0.10
         has_water_tank = int(np.random.random() < tank_base)
 
-        # Backup generator: expensive, mainly villas and gated communities
         gen_base = 0.55 if house_type == 'villa' else \
                    0.30 if compound_type == 'gated_community' else \
                    0.10 if urban_rural == 'urban' else 0.02
         has_backup_generator = int(np.random.random() < gen_base)
 
-        # Furnishing features — realistic Gasabo market probabilities
-        # Fully furnished = all items included; unfurnished = none
-        # Probabilities scale with house_type and urban_rural
+        # Furnishing features
         if house_type == 'villa' and urban_rural == 'urban':
             furnished_prob   = 0.55
             sofa_prob        = 0.80
@@ -460,7 +452,7 @@ def generate_gasabo_dataset(n_samples: int = 2000) -> pd.DataFrame:
             washer_prob      = 0.08
             ac_prob          = 0.04
             wifi_prob        = 0.20
-        else:  # rural / standalone basic
+        else:
             furnished_prob   = 0.05
             sofa_prob        = 0.15
             beds_prob        = 0.12
@@ -519,7 +511,34 @@ def generate_gasabo_dataset(n_samples: int = 2000) -> pd.DataFrame:
             'road_access': road,
         }
 
-        rent = calculate_rent(sector, profile, features)
+        # Calculate base monthly rent from property features
+        monthly_rent = calculate_rent(sector, profile, features)
+
+        # ── Rental type & duration ──────────────────────────────────────────
+        # Distribution: 70% monthly, 15% weekly, 15% daily
+        # Short-stay requires furnished or at least basic amenities
+        can_short_stay = bool(elec and (is_furnished or has_beds_mattresses))
+        if can_short_stay:
+            rental_type = np.random.choice(['monthly', 'weekly', 'daily'], p=[0.70, 0.15, 0.15])
+        else:
+            rental_type = 'monthly'
+
+        if rental_type == 'monthly':
+            num_days = 30
+            total_rent = monthly_rent
+        elif rental_type == 'weekly':
+            # Weekly: 1–4 weeks; nightly rate = monthly / 30 * 1.6 (short-stay premium)
+            num_weeks = np.random.randint(1, 5)
+            num_days = num_weeks * 7
+            nightly_rate = (monthly_rent / 30) * 1.6
+            total_rent = round(nightly_rate * num_days / 1000) * 1000
+        else:  # daily
+            # Daily: 1–6 days; nightly rate = monthly / 30 * 2.2 (highest premium)
+            num_days = np.random.randint(1, 7)
+            nightly_rate = (monthly_rent / 30) * 2.2
+            total_rent = round(nightly_rate * num_days / 1000) * 1000
+
+        total_rent = max(3000, total_rent)
 
         records.append({
             'district': 'Gasabo',
@@ -528,7 +547,9 @@ def generate_gasabo_dataset(n_samples: int = 2000) -> pd.DataFrame:
             'is_near_cbd': is_near_cbd,
             **features,
             'num_rooms_total': rooms_total,
-            'monthly_rent_rwf': rent,
+            'rental_type': rental_type,
+            'num_days': num_days,
+            'monthly_rent_rwf': total_rent,
             'data_source': 'synthetic_nisr_calibrated',
             'generated_date': datetime.now().strftime('%Y-%m-%d')
         })

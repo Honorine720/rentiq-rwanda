@@ -86,6 +86,9 @@ class PredictionRequest(BaseModel):
     is_near_cbd: int = Field(..., ge=0, le=1, description="Near Kigali CBD area (0 or 1)")
     urban_rural: UrbanRural = Field(..., description="Urban/rural classification")
     compound_type: str = Field("standalone_open", description="Compound/estate type")
+    # Rental type & duration
+    rental_type: str = Field("monthly", description="monthly | weekly | daily")
+    num_days: int = Field(30, ge=1, le=30, description="Number of days (1-6 for daily, 7-28 for weekly, 30 for monthly)")
     # Security & infrastructure
     has_fence: int = Field(0, ge=0, le=1)
     has_lightning_rod: int = Field(0, ge=0, le=1)
@@ -151,17 +154,21 @@ class ShapExplanation(BaseModel):
 
 
 class PredictionResponse(BaseModel):
-    """
-    Response body for successful rent prediction
-    """
-    predicted_rent_rwf: float = Field(..., description="Predicted monthly rent in Rwandan Francs")
-    predicted_rent_usd: float = Field(..., description="Predicted monthly rent in US Dollars")
-    confidence_range: ConfidenceRange = Field(..., description="68% confidence interval")
-    model_used: str = Field(..., description="Name of ML model used for prediction")
-    r2_score: float = Field(..., description="Model R² score (accuracy metric)")
-    shap_explanations: List[ShapExplanation] = Field(..., description="Top 5 features influencing the price")
-    prediction_id: str = Field(..., description="Unique identifier for this prediction")
-    timestamp: datetime = Field(..., description="Prediction timestamp (ISO 8601)")
+    predicted_rent_rwf: float
+    predicted_rent_usd: float
+    total_price_rwf: float = 0.0
+    total_price_usd: float = 0.0
+    nightly_rate_rwf: float = 0.0
+    nightly_rate_usd: float = 0.0
+    rental_type: str = "monthly"
+    num_days: int = 30
+    period_label: str = "per month"
+    confidence_range: ConfidenceRange
+    model_used: str
+    r2_score: float
+    shap_explanations: List[ShapExplanation]
+    prediction_id: str
+    timestamp: datetime
     
     class Config:
         schema_extra = {
@@ -323,4 +330,6 @@ def prediction_request_to_dict(request: PredictionRequest) -> dict:
         'has_washing_machine': request.has_washing_machine,
         'has_air_conditioning': request.has_air_conditioning,
         'has_internet_wifi': request.has_internet_wifi,
+        'rental_type': request.rental_type,
+        'num_days': request.num_days,
     }

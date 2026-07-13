@@ -127,6 +127,13 @@ async def predict_rent(
         response = PredictionResponse(
             predicted_rent_rwf=result['predicted_rent_rwf'],
             predicted_rent_usd=result['predicted_rent_usd'],
+            total_price_rwf=result.get('total_price_rwf', result['predicted_rent_rwf']),
+            total_price_usd=result.get('total_price_usd', result['predicted_rent_usd']),
+            nightly_rate_rwf=result.get('nightly_rate_rwf', 0.0),
+            nightly_rate_usd=result.get('nightly_rate_usd', 0.0),
+            rental_type=result.get('rental_type', 'monthly'),
+            num_days=result.get('num_days', 30),
+            period_label=result.get('period_label', 'per month'),
             confidence_range=ConfidenceRange(
                 low=result['confidence_range']['low'],
                 high=result['confidence_range']['high']

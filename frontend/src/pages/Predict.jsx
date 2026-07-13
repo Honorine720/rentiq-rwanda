@@ -146,16 +146,63 @@ export default function Predict() {
 
           {/* Main Price Card */}
           <div className="card p-8 mb-5">
-            <div className="flex items-start justify-between mb-6">
+            <div className="flex items-start justify-between mb-4">
               <div>
-                <p className={`text-sm font-semibold uppercase tracking-wide mb-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{t('result_monthly')}</p>
-                <p className={`text-5xl font-extrabold ${isDark ? 'text-white' : 'text-slate-900'}`}>{formatRWF(prediction.predicted_rent_rwf)}</p>
-                <p className={`text-xl font-semibold mt-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{formatUSD(prediction.predicted_rent_usd)} / month</p>
+                {/* Rental type badge */}
+                <span className={`inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide px-2.5 py-1 rounded-full mb-3 ${
+                  prediction.rental_type === 'daily'  ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300' :
+                  prediction.rental_type === 'weekly' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300' :
+                  'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300'
+                }`}>
+                  {prediction.rental_type === 'daily' ? '🌙 Daily Stay' : prediction.rental_type === 'weekly' ? '🗓️ Weekly Stay' : '🏠 Monthly Rental'}
+                </span>
+
+                {/* Total price — primary figure */}
+                <p className={`text-xs font-semibold uppercase tracking-wide mb-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                  {prediction.rental_type === 'monthly' ? 'Monthly Rent' : `Total Price — ${prediction.period_label}`}
+                </p>
+                <p className={`text-5xl font-extrabold ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                  {formatRWF(prediction.total_price_rwf || prediction.predicted_rent_rwf)}
+                </p>
+                <p className={`text-xl font-semibold mt-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                  {formatUSD(prediction.total_price_usd || prediction.predicted_rent_usd)} {prediction.rental_type === 'monthly' ? '/ month' : prediction.period_label}
+                </p>
+
+                {/* Per-night breakdown for short stays */}
+                {prediction.rental_type !== 'monthly' && prediction.nightly_rate_rwf > 0 && (
+                  <div className={`mt-3 flex items-center gap-2 text-sm ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+                    <span className="font-medium">Per night:</span>
+                    <span className="font-bold">{formatRWF(prediction.nightly_rate_rwf)}</span>
+                    <span className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>({formatUSD(prediction.nightly_rate_usd)})</span>
+                  </div>
+                )}
               </div>
               <span className={`px-3 py-1.5 rounded-full border text-xs font-bold uppercase tracking-wide ${tierColors[priceTier.tier]}`}>
                 {priceTier.tier}
               </span>
             </div>
+
+            {/* Short-stay breakdown box */}
+            {prediction.rental_type !== 'monthly' && (
+              <div className={`rounded-lg p-4 mb-4 ${isDark ? 'bg-amber-900/20 border border-amber-800' : 'bg-amber-50 border border-amber-200'}`}>
+                <p className={`text-xs font-semibold uppercase tracking-wide mb-2 ${isDark ? 'text-amber-400' : 'text-amber-700'}`}>
+                  Short-Stay Pricing Breakdown
+                </p>
+                <div className="grid grid-cols-3 gap-3 text-center">
+                  {[
+                    { label: 'Nightly Rate', value: formatRWF(prediction.nightly_rate_rwf) },
+                    { label: 'Number of Days', value: `${prediction.num_days} day${prediction.num_days > 1 ? 's' : ''}` },
+                    { label: 'Total to Pay', value: formatRWF(prediction.total_price_rwf || prediction.predicted_rent_rwf) },
+                  ].map(({ label, value }) => (
+                    <div key={label} className={`rounded-lg p-2 ${isDark ? 'bg-slate-700' : 'bg-white'}`}>
+                      <p className={`text-xs mb-0.5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{label}</p>
+                      <p className={`text-sm font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>{value}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className={`rounded-lg p-4 flex items-start gap-3 ${isDark ? 'bg-slate-700' : 'bg-slate-50'}`}>
               <Info size={16} className={`mt-0.5 flex-shrink-0 ${isDark ? 'text-slate-400' : 'text-slate-400'}`} />
               <div>

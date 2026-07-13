@@ -98,6 +98,8 @@ class RentPredictor:
         property_data.setdefault('has_security_guard', 0)
         property_data.setdefault('has_water_tank', 0)
         property_data.setdefault('has_backup_generator', 0)
+        property_data.setdefault('rental_type', 'monthly')
+        property_data.setdefault('num_days', 30)
 
         property_data['utility_score'] = sum([
             property_data.get('has_electricity', 0),
@@ -117,6 +119,17 @@ class RentPredictor:
         property_data['area_per_bedroom'] = round(
             property_data.get('floor_area_sqm', 30) / max(bedrooms, 1), 2
         )
+
+        # Resolve rental_type and num_days
+        rental_type = property_data.get('rental_type', 'monthly')
+        num_days = int(property_data.get('num_days', 30))
+        if rental_type == 'monthly':
+            num_days = 30
+        elif rental_type == 'weekly':
+            num_days = max(7, min(28, num_days))
+        else:  # daily
+            num_days = max(1, min(6, num_days))
+        property_data['num_days'] = num_days
 
         # Validate input has all required features
         missing_features = set(ALL_FEATURES) - set(property_data.keys())
@@ -168,10 +181,33 @@ class RentPredictor:
         # Convert to USD (exchange rate from env or default)
         usd_exchange_rate = 1396.0  # RWF per USD
         predicted_rent_usd = predicted_rent_rwf / usd_exchange_rate
-        
+
+        # Build short-stay breakdown
+        rental_type = property_data.get('rental_type', 'monthly')
+        num_days = int(property_data.get('num_days', 30))
+        if rental_type == 'monthly':
+            nightly_rate_rwf = round(predicted_rent_rwf / 30, 2)
+            total_price_rwf = predicted_rent_rwf
+            period_label = 'per month'
+        elif rental_type == 'weekly':
+            nightly_rate_rwf = round(predicted_rent_rwf / num_days, 2)
+            total_price_rwf = predicted_rent_rwf
+            period_label = f'for {num_days} day(s)'
+        else:  # daily
+            nightly_rate_rwf = round(predicted_rent_rwf / num_days, 2)
+            total_price_rwf = predicted_rent_rwf
+            period_label = f'for {num_days} day(s)'
+
         return {
             'predicted_rent_rwf': round(predicted_rent_rwf, 2),
-            'predicted_rent_usd': round(predicted_rent_usd, 2),
+            'predicted_rent_usd': round(predicted_rent_rwf / usd_exchange_rate, 2),
+            'total_price_rwf': round(total_price_rwf, 2),
+            'total_price_usd': round(total_price_rwf / usd_exchange_rate, 2),
+            'nightly_rate_rwf': round(nightly_rate_rwf, 2),
+            'nightly_rate_usd': round(nightly_rate_rwf / usd_exchange_rate, 2),
+            'rental_type': rental_type,
+            'num_days': num_days,
+            'period_label': period_label,
             'confidence_range': {
                 'low': round(confidence_low, 2),
                 'high': round(confidence_high, 2)

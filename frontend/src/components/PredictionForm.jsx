@@ -70,7 +70,7 @@ const LOCATION_ZONES = [
 ];
 
 const STEP_FIELDS = { 1: ['district','sector','urban_rural','location_zone'], 2: ['property_arrangement','num_bedrooms','num_rooms_total','floor_area_sqm'], 3: ['wall_material','floor_material','roof_material'], 4: ['road_access'], 5: [] };
-const INITIAL_DATA = { district:'',sector:'',urban_rural:'',location_zone:'',distance_to_cbd_km:5.0,is_near_cbd:0,property_arrangement:'',house_type:'',compound_type:'',num_bedrooms:1,num_rooms_total:1,floor_area_sqm:30,wall_material:'',floor_material:'',roof_material:'',has_electricity:false,has_piped_water:false,has_indoor_toilet:false,has_kitchen:false,has_parking:false,has_fence:false,has_lightning_rod:false,has_security_guard:false,has_water_tank:false,has_backup_generator:false,road_access:'',is_furnished:false,has_sofa:false,has_beds_mattresses:false,has_wardrobe:false,has_dining_set:false,has_tv:false,has_fridge:false,has_washing_machine:false,has_air_conditioning:false,has_internet_wifi:false };
+const INITIAL_DATA = { district:'',sector:'',urban_rural:'',location_zone:'',distance_to_cbd_km:5.0,is_near_cbd:0,property_arrangement:'',house_type:'',compound_type:'',num_bedrooms:1,num_rooms_total:1,floor_area_sqm:30,wall_material:'',floor_material:'',roof_material:'',has_electricity:false,has_piped_water:false,has_indoor_toilet:false,has_kitchen:false,has_parking:false,has_fence:false,has_lightning_rod:false,has_security_guard:false,has_water_tank:false,has_backup_generator:false,road_access:'',is_furnished:false,has_sofa:false,has_beds_mattresses:false,has_wardrobe:false,has_dining_set:false,has_tv:false,has_fridge:false,has_washing_machine:false,has_air_conditioning:false,has_internet_wifi:false,rental_type:'monthly',num_days:30 };
 const fmt = (s) => s.replace(/_/g,' ').replace(/\b\w/g,(c)=>c.toUpperCase());
 
 export default function PredictionForm({ onPredictionComplete }) {
@@ -107,6 +107,12 @@ export default function PredictionForm({ onPredictionComplete }) {
         property_arrangement: value,
         house_type: arr ? arr.house_type : '',
         compound_type: arr ? arr.compound_type : '',
+      }));
+    } else if (name === 'rental_type') {
+      setFormData((p) => ({
+        ...p,
+        rental_type: value,
+        num_days: value === 'monthly' ? 30 : value === 'weekly' ? 7 : 1,
       }));
     } else {
       setFormData((p) => ({ ...p, [name]: type === 'checkbox' ? checked : value }));
@@ -159,6 +165,8 @@ export default function PredictionForm({ onPredictionComplete }) {
         has_washing_machine: formData.has_washing_machine ? 1 : 0,
         has_air_conditioning: formData.has_air_conditioning ? 1 : 0,
         has_internet_wifi: formData.has_internet_wifi ? 1 : 0,
+        rental_type: formData.rental_type || 'monthly',
+        num_days: parseInt(formData.num_days, 10) || 30,
       };
       // Remove UI-only fields before sending to API
       delete payload.location_zone;
@@ -246,6 +254,59 @@ export default function PredictionForm({ onPredictionComplete }) {
               }`}>
                 <span>{formData.is_near_cbd ? '✅' : '📍'}</span>
                 <span>{formData.is_near_cbd ? 'Near city centre — higher rent area' : 'Away from city centre — moderate/lower rent area'}</span>
+              </div>
+            )}
+
+            {/* Rental Type */}
+            <div>
+              <label className="label">📅 How long do you need the house?</label>
+              <div className="grid grid-cols-1 gap-2">
+                {[
+                  { value: 'monthly', label: '🏠 Monthly Rental', desc: 'Standard long-term rental — pay per month' },
+                  { value: 'weekly',  label: '🗓️ Weekly / Short-Term Stay', desc: 'Stay for 1–4 weeks — business trips, relocation, training' },
+                  { value: 'daily',   label: '🌙 Daily / Temporary Stay', desc: 'Stay for 1–6 days — transit, events, short visits' },
+                ].map((opt) => (
+                  <label key={opt.value} className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-all ${
+                    formData.rental_type === opt.value
+                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-500'
+                      : isDark ? 'border-slate-700 hover:border-slate-500 hover:bg-slate-700/50' : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                  }`}>
+                    <input type="radio" name="rental_type" value={opt.value}
+                      checked={formData.rental_type === opt.value}
+                      onChange={handleChange}
+                      className="mt-0.5 w-4 h-4 text-blue-600 border-slate-300 focus:ring-blue-500 flex-shrink-0" />
+                    <div className="min-w-0">
+                      <p className={`text-sm font-semibold ${isDark ? 'text-white' : 'text-slate-800'}`}>{opt.label}</p>
+                      <p className={`text-xs mt-0.5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{opt.desc}</p>
+                    </div>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {/* Days / Weeks picker */}
+            {formData.rental_type !== 'monthly' && (
+              <div>
+                <label className="label">
+                  {formData.rental_type === 'daily' ? 'How many days? (1–6)' : 'How many weeks? (1–4)'}
+                </label>
+                <div className="flex gap-2 flex-wrap">
+                  {(formData.rental_type === 'daily' ? [1,2,3,4,5,6] : [7,14,21,28]).map((d) => (
+                    <button key={d} type="button"
+                      onClick={() => setFormData(p => ({ ...p, num_days: d }))}
+                      className={`px-4 py-2 rounded-lg text-sm font-semibold border transition-colors ${
+                        formData.num_days === d
+                          ? 'bg-blue-600 text-white border-blue-600'
+                          : isDark ? 'border-slate-600 text-slate-300 hover:bg-slate-700' : 'border-slate-300 text-slate-700 hover:bg-slate-50'
+                      }`}>
+                      {formData.rental_type === 'daily' ? `${d} day${d > 1 ? 's' : ''}` : `${d/7} week${d > 7 ? 's' : ''}`}
+                    </button>
+                  ))}
+                </div>
+                <p className={`text-xs mt-2 font-medium ${isDark ? 'text-amber-400' : 'text-amber-600'}`}>
+                  ⚠️ Short-stay pricing includes a premium over the standard monthly rate.
+                  {formData.rental_type === 'daily' ? ' Daily rate ≈ monthly ÷ 30 × 2.2' : ' Weekly rate ≈ monthly ÷ 30 × 1.6 per night'}
+                </p>
               </div>
             )}
           </div>
