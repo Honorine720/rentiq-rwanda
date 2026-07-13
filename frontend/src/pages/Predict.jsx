@@ -1,7 +1,8 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import PredictionForm from '../components/PredictionForm';
 import { formatRWF, formatUSD, getPriceTier } from '../services/api';
-import { TrendingUp, TrendingDown, Info, RotateCcw, Home, MapPin, Zap, Shield, Layers } from 'lucide-react';
+import { TrendingUp, TrendingDown, Info, RotateCcw, Home, MapPin, Zap, Shield, Layers, LogIn, UserPlus } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
 // Maps raw feature names to friendly labels, icons, and category
@@ -66,9 +67,49 @@ const CATEGORY_COLORS = {
 };
 
 export default function Predict() {
-  const { t, theme } = useApp();
+  const { t, theme, auth } = useApp();
   const isDark = theme === 'dark';
   const [prediction, setPrediction] = useState(null);
+
+  // Auth guard
+  if (!auth) {
+    return (
+      <div className="page-bg">
+        <div className="max-w-lg mx-auto px-6 py-24 flex flex-col items-center text-center">
+          <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mb-5 ${
+            isDark ? 'bg-slate-700' : 'bg-blue-50'
+          }`}>
+            <LogIn size={32} className="text-blue-500" />
+          </div>
+          <h2 className={`text-2xl font-bold mb-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>
+            Sign in to predict rent
+          </h2>
+          <p className={`text-sm mb-8 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+            You need an account to use the rent prediction tool. It's free and takes less than a minute.
+          </p>
+          <div className="flex gap-3">
+            <Link
+              to="/login"
+              className="flex items-center gap-2 px-5 py-2.5 rounded-lg border text-sm font-semibold transition-colors
+                bg-blue-600 text-white hover:bg-blue-700"
+            >
+              <LogIn size={16} /> Sign In
+            </Link>
+            <Link
+              to="/register"
+              className={`flex items-center gap-2 px-5 py-2.5 rounded-lg border text-sm font-semibold transition-colors ${
+                isDark
+                  ? 'border-slate-600 text-slate-300 hover:bg-slate-700'
+                  : 'border-slate-300 text-slate-700 hover:bg-slate-50'
+              }`}
+            >
+              <UserPlus size={16} /> Create Account
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const tierColors = {
     Affordable: isDark ? 'bg-green-900/40 text-green-400 border-green-700' : 'bg-green-50 text-green-700 border-green-200',

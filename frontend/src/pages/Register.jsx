@@ -1,16 +1,15 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { UserPlus, Eye, EyeOff, ShieldCheck } from 'lucide-react';
+import { UserPlus, Eye, EyeOff } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import { registerUser, registerAdmin } from '../services/api';
+import { registerUser } from '../services/api';
 
 export default function Register() {
   const { theme, login } = useApp();
   const isDark = theme === 'dark';
   const navigate = useNavigate();
 
-  const [tab, setTab] = useState('user'); // 'user' | 'admin'
-  const [form, setForm] = useState({ full_name: '', email: '', password: '', admin_secret: '' });
+  const [form, setForm] = useState({ full_name: '', email: '', password: '' });
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -20,13 +19,9 @@ export default function Register() {
     setError('');
     setLoading(true);
     try {
-      const fn = tab === 'admin' ? registerAdmin : registerUser;
-      const payload = tab === 'admin'
-        ? { full_name: form.full_name, email: form.email, password: form.password, admin_secret: form.admin_secret }
-        : { full_name: form.full_name, email: form.email, password: form.password };
-      const data = await fn(payload);
+      const data = await registerUser(form);
       login(data);
-      navigate(data.role === 'admin' ? '/admin' : '/');
+      navigate('/');
     } catch (err) {
       setError(err.userMessage || 'Registration failed. Please try again.');
     } finally {
@@ -43,41 +38,15 @@ export default function Register() {
   return (
     <div className="min-h-screen flex items-center justify-center px-4 py-12">
       <div className={`w-full max-w-md rounded-2xl border shadow-xl p-8 ${card}`}>
-        <div className="flex flex-col items-center mb-6">
+        <div className="flex flex-col items-center mb-8">
           <div className="w-12 h-12 rounded-xl bg-blue-600 flex items-center justify-center mb-3">
             <UserPlus size={24} className="text-white" />
           </div>
           <h1 className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>Create Account</h1>
           <p className={`text-sm mt-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-            Join RentIQ Rwanda
+            Join RentIQ Rwanda — it's free
           </p>
         </div>
-
-        {/* Tabs */}
-        <div className={`flex rounded-lg p-1 mb-6 ${isDark ? 'bg-slate-700' : 'bg-slate-100'}`}>
-          {[
-            { key: 'user', label: 'User', icon: UserPlus },
-            { key: 'admin', label: 'Admin', icon: ShieldCheck },
-          ].map(({ key, label: lbl, icon: Icon }) => (
-            <button
-              key={key}
-              onClick={() => { setTab(key); setError(''); }}
-              className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-md text-sm font-semibold transition-colors ${
-                tab === key
-                  ? 'bg-blue-600 text-white shadow'
-                  : isDark ? 'text-slate-300 hover:text-white' : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <Icon size={15} /> {lbl}
-            </button>
-          ))}
-        </div>
-
-        {tab === 'admin' && (
-          <div className={`mb-5 px-4 py-3 rounded-lg text-sm border ${isDark ? 'bg-amber-900/30 border-amber-700 text-amber-300' : 'bg-amber-50 border-amber-200 text-amber-800'}`}>
-            Admin registration requires a secret key provided by the system administrator.
-          </div>
-        )}
 
         {error && (
           <div className="mb-4 px-4 py-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
@@ -85,7 +54,7 @@ export default function Register() {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-5">
           <div>
             <label className={`block text-sm font-medium mb-1.5 ${label}`}>Full Name</label>
             <input
@@ -132,26 +101,12 @@ export default function Register() {
             </div>
           </div>
 
-          {tab === 'admin' && (
-            <div>
-              <label className={`block text-sm font-medium mb-1.5 ${label}`}>Admin Secret Key</label>
-              <input
-                type="password"
-                required
-                value={form.admin_secret}
-                onChange={(e) => setForm({ ...form, admin_secret: e.target.value })}
-                placeholder="Enter admin secret key"
-                className={`w-full px-4 py-2.5 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${input}`}
-              />
-            </div>
-          )}
-
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm transition-colors disabled:opacity-60 mt-2"
+            className="w-full py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm transition-colors disabled:opacity-60"
           >
-            {loading ? 'Creating account…' : `Create ${tab === 'admin' ? 'Admin' : ''} Account`}
+            {loading ? 'Creating account…' : 'Create Account'}
           </button>
         </form>
 

@@ -41,6 +41,25 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         print(f"⚠ Database initialization warning: {e}")
     
+    # Seed default admin account
+    try:
+        from app.models.database import SessionLocal, User
+        from passlib.context import CryptContext
+        _pwd = CryptContext(schemes=["bcrypt"], deprecated="auto")
+        db = SessionLocal()
+        if not db.query(User).filter(User.email == "honorine@rentiq.rw").first():
+            db.add(User(
+                email="honorine@rentiq.rw",
+                full_name="Honorine",
+                hashed_password=_pwd.hash("HOno@1234"),
+                role="admin",
+            ))
+            db.commit()
+            print("✓ Default admin seeded (honorine@rentiq.rw)")
+        db.close()
+    except Exception as e:
+        print(f"⚠ Admin seed warning: {e}")
+    
     # Check if model exists
     model_path = Path('./models_saved/best_model.pkl')
     if model_path.exists():
@@ -137,17 +156,11 @@ app = FastAPI(
     openapi_url="/openapi.json"
 )
 
-# Configure CORS
-ALLOWED_ORIGINS_LIST = list(set(ALLOWED_ORIGINS + [
-    "https://gasabohouserentpricepredictor.pages.dev",
-    "http://localhost:3000",
-    "http://localhost:5173",
-    "http://127.0.0.1:3000",
-]))
+# Configure CORS — allow all origins so Railway deployment works with any frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=ALLOWED_ORIGINS_LIST,
-    allow_credentials=True,
+    allow_origins=["*"],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
     expose_headers=["*"]
