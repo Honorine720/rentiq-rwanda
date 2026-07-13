@@ -44,14 +44,14 @@ async def lifespan(app: FastAPI):
     # Seed default admin account
     try:
         from app.models.database import SessionLocal, User
-        from passlib.context import CryptContext
-        _pwd = CryptContext(schemes=["bcrypt"], deprecated="auto")
+        import bcrypt
         db = SessionLocal()
         if not db.query(User).filter(User.email == "honorine@rentiq.rw").first():
+            hashed = bcrypt.hashpw("HOno@1234".encode(), bcrypt.gensalt()).decode()
             db.add(User(
                 email="honorine@rentiq.rw",
                 full_name="Honorine",
-                hashed_password=_pwd.hash("HOno@1234"),
+                hashed_password=hashed,
                 role="admin",
             ))
             db.commit()
