@@ -32,16 +32,20 @@ OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 # Calibrated from NISR EICV5 + Kigali City Master Plan
 # ─────────────────────────────────────────────────────────────────────────────
 
-# Real 2025 Kigali market: min 50,000 RWF, max 1,000,000 RWF
-# Base rents represent the FLOOR for each sector before any feature multipliers
+# Real Gasabo/Kigali market (2024-2025):
+# Rural sectors: 15,000–50,000 RWF
+# Peri-urban:    40,000–120,000 RWF
+# Urban mid:     70,000–200,000 RWF
+# Urban core:    100,000–350,000 RWF
+# Hard ceiling:  350,000 RWF (no house exceeds this in Gasabo)
 SECTOR_PROFILES = {
     # Urban core sectors
     'Kacyiru': {
         'weight': 0.09,
         'urban_rural': ['urban', 'peri_urban'],
         'urban_weights': [0.90, 0.10],
-        'base_rent': 250000,
-        'rent_std': 0.45,
+        'base_rent': 120000,
+        'rent_std': 0.30,
         'electricity_prob': 0.92,
         'piped_water_prob': 0.88,
         'distance_cbd': (0.5, 3.0),
@@ -51,8 +55,8 @@ SECTOR_PROFILES = {
         'weight': 0.12,
         'urban_rural': ['urban', 'peri_urban'],
         'urban_weights': [0.85, 0.15],
-        'base_rent': 200000,
-        'rent_std': 0.50,
+        'base_rent': 100000,
+        'rent_std': 0.30,
         'electricity_prob': 0.88,
         'piped_water_prob': 0.82,
         'distance_cbd': (1.0, 5.0),
@@ -62,8 +66,8 @@ SECTOR_PROFILES = {
         'weight': 0.13,
         'urban_rural': ['urban', 'peri_urban'],
         'urban_weights': [0.80, 0.20],
-        'base_rent': 170000,
-        'rent_std': 0.50,
+        'base_rent': 85000,
+        'rent_std': 0.28,
         'electricity_prob': 0.85,
         'piped_water_prob': 0.78,
         'distance_cbd': (3.0, 7.0),
@@ -73,8 +77,8 @@ SECTOR_PROFILES = {
         'weight': 0.07,
         'urban_rural': ['urban', 'peri_urban'],
         'urban_weights': [0.75, 0.25],
-        'base_rent': 155000,
-        'rent_std': 0.48,
+        'base_rent': 75000,
+        'rent_std': 0.28,
         'electricity_prob': 0.82,
         'piped_water_prob': 0.75,
         'distance_cbd': (2.0, 6.0),
@@ -85,8 +89,8 @@ SECTOR_PROFILES = {
         'weight': 0.09,
         'urban_rural': ['peri_urban', 'urban', 'rural'],
         'urban_weights': [0.55, 0.30, 0.15],
-        'base_rent': 120000,
-        'rent_std': 0.52,
+        'base_rent': 60000,
+        'rent_std': 0.28,
         'electricity_prob': 0.72,
         'piped_water_prob': 0.65,
         'distance_cbd': (4.0, 10.0),
@@ -96,8 +100,8 @@ SECTOR_PROFILES = {
         'weight': 0.06,
         'urban_rural': ['peri_urban', 'urban', 'rural'],
         'urban_weights': [0.50, 0.30, 0.20],
-        'base_rent': 110000,
-        'rent_std': 0.50,
+        'base_rent': 55000,
+        'rent_std': 0.28,
         'electricity_prob': 0.68,
         'piped_water_prob': 0.60,
         'distance_cbd': (5.0, 12.0),
@@ -107,8 +111,8 @@ SECTOR_PROFILES = {
         'weight': 0.07,
         'urban_rural': ['peri_urban', 'rural'],
         'urban_weights': [0.55, 0.45],
-        'base_rent': 85000,
-        'rent_std': 0.48,
+        'base_rent': 42000,
+        'rent_std': 0.25,
         'electricity_prob': 0.60,
         'piped_water_prob': 0.52,
         'distance_cbd': (7.0, 15.0),
@@ -118,20 +122,20 @@ SECTOR_PROFILES = {
         'weight': 0.07,
         'urban_rural': ['peri_urban', 'rural'],
         'urban_weights': [0.45, 0.55],
-        'base_rent': 75000,
-        'rent_std': 0.45,
+        'base_rent': 38000,
+        'rent_std': 0.25,
         'electricity_prob': 0.55,
         'piped_water_prob': 0.48,
         'distance_cbd': (8.0, 16.0),
         'notes': 'Peri-urban/rural mix'
     },
-    # Rural sectors — still within Kigali, min 50k applies
+    # Rural sectors
     'Rusororo': {
         'weight': 0.07,
         'urban_rural': ['rural', 'peri_urban'],
         'urban_weights': [0.70, 0.30],
-        'base_rent': 65000,
-        'rent_std': 0.42,
+        'base_rent': 28000,
+        'rent_std': 0.22,
         'electricity_prob': 0.42,
         'piped_water_prob': 0.38,
         'distance_cbd': (10.0, 20.0),
@@ -141,8 +145,8 @@ SECTOR_PROFILES = {
         'weight': 0.06,
         'urban_rural': ['rural', 'peri_urban'],
         'urban_weights': [0.65, 0.35],
-        'base_rent': 68000,
-        'rent_std': 0.43,
+        'base_rent': 30000,
+        'rent_std': 0.22,
         'electricity_prob': 0.45,
         'piped_water_prob': 0.40,
         'distance_cbd': (9.0, 18.0),
@@ -152,8 +156,8 @@ SECTOR_PROFILES = {
         'weight': 0.05,
         'urban_rural': ['rural', 'peri_urban'],
         'urban_weights': [0.70, 0.30],
-        'base_rent': 58000,
-        'rent_std': 0.40,
+        'base_rent': 22000,
+        'rent_std': 0.20,
         'electricity_prob': 0.38,
         'piped_water_prob': 0.32,
         'distance_cbd': (12.0, 22.0),
@@ -163,8 +167,8 @@ SECTOR_PROFILES = {
         'weight': 0.04,
         'urban_rural': ['rural'],
         'urban_weights': [1.0],
-        'base_rent': 55000,
-        'rent_std': 0.38,
+        'base_rent': 18000,
+        'rent_std': 0.20,
         'electricity_prob': 0.35,
         'piped_water_prob': 0.28,
         'distance_cbd': (14.0, 25.0),
@@ -174,8 +178,8 @@ SECTOR_PROFILES = {
         'weight': 0.04,
         'urban_rural': ['rural', 'peri_urban'],
         'urban_weights': [0.65, 0.35],
-        'base_rent': 57000,
-        'rent_std': 0.40,
+        'base_rent': 20000,
+        'rent_std': 0.20,
         'electricity_prob': 0.36,
         'piped_water_prob': 0.30,
         'distance_cbd': (13.0, 23.0),
@@ -185,8 +189,8 @@ SECTOR_PROFILES = {
         'weight': 0.03,
         'urban_rural': ['rural'],
         'urban_weights': [1.0],
-        'base_rent': 52000,
-        'rent_std': 0.38,
+        'base_rent': 16000,
+        'rent_std': 0.20,
         'electricity_prob': 0.30,
         'piped_water_prob': 0.25,
         'distance_cbd': (15.0, 28.0),
@@ -196,8 +200,8 @@ SECTOR_PROFILES = {
         'weight': 0.02,
         'urban_rural': ['rural'],
         'urban_weights': [1.0],
-        'base_rent': 50000,
-        'rent_std': 0.35,
+        'base_rent': 15000,
+        'rent_std': 0.18,
         'electricity_prob': 0.28,
         'piped_water_prob': 0.22,
         'distance_cbd': (16.0, 30.0),
@@ -257,23 +261,22 @@ def _sample_categorical(profile: dict) -> str:
 
 def calculate_rent(sector: str, profile: dict, features: dict) -> float:
     """
-    Calculate rent calibrated to real 2025 Kigali market.
-    Hard floor: 50,000 RWF. Hard ceiling: 1,000,000 RWF.
-    Base rents already represent realistic sector minimums.
-    Multipliers are additive-style to avoid runaway compounding.
+    Calculate rent calibrated to real Gasabo/Kigali market (2024-2025).
+    Hard floor: 10,000 RWF. Hard ceiling: 350,000 RWF.
+    Uses flat additive adjustments to avoid compounding inflation.
     """
     base = profile['base_rent']
 
-    # Bedroom adjustment — flat amount per bedroom above/below 2
-    base += (features['num_bedrooms'] - 2) * 15000
+    # Bedroom adjustment — flat per bedroom above/below 2
+    base += (features['num_bedrooms'] - 2) * 8000
 
-    # Floor area — modest per-sqm contribution
-    base += features['floor_area_sqm'] * 800
+    # Floor area — small per-sqm contribution
+    base += features['floor_area_sqm'] * 200
 
-    # Material quality — applied as a single blended adjustment
-    wall_score  = {'concrete': 1.20, 'brick': 1.10, 'mixed': 1.02, 'mud_brick': 0.95, 'wood': 0.92}
-    floor_score = {'tiles': 1.15, 'cement': 1.05, 'earth': 0.95, 'wood': 1.00}
-    roof_score  = {'concrete': 1.15, 'tiles': 1.10, 'iron_sheet': 1.00, 'grass': 0.93}
+    # Material quality — single blended multiplier, kept tight
+    wall_score  = {'concrete': 1.12, 'brick': 1.06, 'mixed': 1.01, 'mud_brick': 0.96, 'wood': 0.93}
+    floor_score = {'tiles': 1.08, 'cement': 1.03, 'earth': 0.95, 'wood': 1.00}
+    roof_score  = {'concrete': 1.08, 'tiles': 1.05, 'iron_sheet': 1.00, 'grass': 0.94}
     material_factor = (
         wall_score.get(features['wall_material'], 1.0) *
         floor_score.get(features['floor_material'], 1.0) *
@@ -281,47 +284,47 @@ def calculate_rent(sector: str, profile: dict, features: dict) -> float:
     ) ** (1/3)
     base *= material_factor
 
-    # Utilities — flat RWF additions instead of compounding multipliers
-    if features['has_electricity']:   base += 20000
-    if features['has_piped_water']:   base += 12000
-    if features['has_indoor_toilet']: base += 8000
-    if features['has_kitchen']:       base += 5000
-    if features['has_parking']:       base += 15000
+    # Utilities — flat RWF additions (realistic Rwandan premiums)
+    if features['has_electricity']:   base += 8000
+    if features['has_piped_water']:   base += 5000
+    if features['has_indoor_toilet']: base += 3000
+    if features['has_kitchen']:       base += 2000
+    if features['has_parking']:       base += 6000
 
-    # Compound type
+    # Compound type — flat additions
     compound_add = {
-        'gated_community':   60000,
-        'standalone_fenced': 25000,
-        'apartment_block':   10000,
-        'standalone_open':       0,
-        'ghetto':           -10000,
+        'gated_community':   20000,
+        'standalone_fenced': 8000,
+        'apartment_block':   3000,
+        'standalone_open':   0,
+        'ghetto':           -5000,
     }
     base += compound_add.get(features.get('compound_type', 'standalone_open'), 0)
 
-    # Security & infrastructure — flat additions
-    if features.get('has_fence', 0):            base += 8000
-    if features.get('has_lightning_rod', 0):    base += 3000
-    if features.get('has_security_guard', 0):   base += 18000
-    if features.get('has_water_tank', 0):       base += 6000
-    if features.get('has_backup_generator', 0): base += 20000
+    # Security & infrastructure — small flat additions
+    if features.get('has_fence', 0):            base += 3000
+    if features.get('has_lightning_rod', 0):    base += 1000
+    if features.get('has_security_guard', 0):   base += 7000
+    if features.get('has_water_tank', 0):       base += 2000
+    if features.get('has_backup_generator', 0): base += 8000
 
     # Distance to CBD — penalty per km
-    base -= features['distance_to_cbd_km'] * 2500
+    base -= features['distance_to_cbd_km'] * 800
 
     # Road access
-    road_add = {'tarmac': 8000, 'murram': 0, 'footpath': -5000}
+    road_add = {'tarmac': 3000, 'murram': 0, 'footpath': -2000}
     base += road_add.get(features['road_access'], 0)
 
-    # House type multiplier
-    type_mult = {'villa': 1.50, 'apartment': 1.10, 'standalone': 1.00, 'shared_compound': 0.90}
+    # House type multiplier — kept modest
+    type_mult = {'villa': 1.30, 'apartment': 1.08, 'standalone': 1.00, 'shared_compound': 0.88}
     base *= type_mult.get(features['house_type'], 1.0)
 
-    # Lognormal noise
-    noise = np.random.lognormal(mean=0, sigma=profile['rent_std'] * 0.15)
+    # Gaussian noise ±10%
+    noise = np.random.uniform(0.90, 1.10)
     base *= noise
 
-    # Hard floor 50,000 RWF — ceiling 1,000,000 RWF (real 2025 Kigali market)
-    return max(50000, min(1000000, round(base / 1000) * 1000))
+    # Hard floor 10,000 RWF — hard ceiling 350,000 RWF
+    return max(10000, min(350000, round(base / 1000) * 1000))
 
 
 def generate_gasabo_dataset(n_samples: int = 2000) -> pd.DataFrame:
