@@ -36,8 +36,8 @@ OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 # Rural sectors: 15,000–50,000 RWF
 # Peri-urban:    40,000–120,000 RWF
 # Urban mid:     70,000–200,000 RWF
-# Urban core:    100,000–350,000 RWF
-# Hard ceiling:  350,000 RWF (no house exceeds this in Gasabo)
+# Urban core:    100,000–500,000+ RWF (villas/gated communities can exceed 500k)
+# No hard ceiling — upper range learned by the model from data
 SECTOR_PROFILES = {
     # Urban core sectors
     'Kacyiru': {
@@ -262,21 +262,21 @@ def _sample_categorical(profile: dict) -> str:
 def calculate_rent(sector: str, profile: dict, features: dict) -> float:
     """
     Calculate rent calibrated to real Gasabo/Kigali market (2024-2025).
-    Hard floor: 10,000 RWF. Hard ceiling: 350,000 RWF.
-    Uses flat additive adjustments to avoid compounding inflation.
+    Hard floor: 10,000 RWF. No ceiling — upper range determined by features.
+    A fully-equipped villa in Kacyiru/Remera can naturally reach 600k-800k RWF.
     """
     base = profile['base_rent']
 
     # Bedroom adjustment — flat per bedroom above/below 2
-    base += (features['num_bedrooms'] - 2) * 8000
+    base += (features['num_bedrooms'] - 2) * 10000
 
-    # Floor area — small per-sqm contribution
-    base += features['floor_area_sqm'] * 200
+    # Floor area — per-sqm contribution
+    base += features['floor_area_sqm'] * 300
 
-    # Material quality — single blended multiplier, kept tight
-    wall_score  = {'concrete': 1.12, 'brick': 1.06, 'mixed': 1.01, 'mud_brick': 0.96, 'wood': 0.93}
-    floor_score = {'tiles': 1.08, 'cement': 1.03, 'earth': 0.95, 'wood': 1.00}
-    roof_score  = {'concrete': 1.08, 'tiles': 1.05, 'iron_sheet': 1.00, 'grass': 0.94}
+    # Material quality — single blended multiplier
+    wall_score  = {'concrete': 1.15, 'brick': 1.08, 'mixed': 1.02, 'mud_brick': 0.95, 'wood': 0.92}
+    floor_score = {'tiles': 1.12, 'cement': 1.04, 'earth': 0.93, 'wood': 1.00}
+    roof_score  = {'concrete': 1.10, 'tiles': 1.07, 'iron_sheet': 1.00, 'grass': 0.93}
     material_factor = (
         wall_score.get(features['wall_material'], 1.0) *
         floor_score.get(features['floor_material'], 1.0) *
@@ -284,47 +284,47 @@ def calculate_rent(sector: str, profile: dict, features: dict) -> float:
     ) ** (1/3)
     base *= material_factor
 
-    # Utilities — flat RWF additions (realistic Rwandan premiums)
-    if features['has_electricity']:   base += 8000
-    if features['has_piped_water']:   base += 5000
-    if features['has_indoor_toilet']: base += 3000
-    if features['has_kitchen']:       base += 2000
-    if features['has_parking']:       base += 6000
+    # Utilities — flat RWF additions
+    if features['has_electricity']:   base += 10000
+    if features['has_piped_water']:   base += 6000
+    if features['has_indoor_toilet']: base += 4000
+    if features['has_kitchen']:       base += 3000
+    if features['has_parking']:       base += 8000
 
-    # Compound type — flat additions
+    # Compound type — significant differentiator for high-end properties
     compound_add = {
-        'gated_community':   20000,
-        'standalone_fenced': 8000,
-        'apartment_block':   3000,
+        'gated_community':   80000,
+        'standalone_fenced': 15000,
+        'apartment_block':   5000,
         'standalone_open':   0,
-        'ghetto':           -5000,
+        'ghetto':           -8000,
     }
     base += compound_add.get(features.get('compound_type', 'standalone_open'), 0)
 
-    # Security & infrastructure — small flat additions
-    if features.get('has_fence', 0):            base += 3000
-    if features.get('has_lightning_rod', 0):    base += 1000
-    if features.get('has_security_guard', 0):   base += 7000
-    if features.get('has_water_tank', 0):       base += 2000
-    if features.get('has_backup_generator', 0): base += 8000
+    # Security & infrastructure — meaningful premiums for luxury properties
+    if features.get('has_fence', 0):            base += 5000
+    if features.get('has_lightning_rod', 0):    base += 2000
+    if features.get('has_security_guard', 0):   base += 30000
+    if features.get('has_water_tank', 0):       base += 5000
+    if features.get('has_backup_generator', 0): base += 35000
 
     # Distance to CBD — penalty per km
     base -= features['distance_to_cbd_km'] * 800
 
     # Road access
-    road_add = {'tarmac': 3000, 'murram': 0, 'footpath': -2000}
+    road_add = {'tarmac': 4000, 'murram': 0, 'footpath': -3000}
     base += road_add.get(features['road_access'], 0)
 
-    # House type multiplier — kept modest
-    type_mult = {'villa': 1.30, 'apartment': 1.08, 'standalone': 1.00, 'shared_compound': 0.88}
+    # House type multiplier — villa in premium sector can push well above 500k
+    type_mult = {'villa': 1.90, 'apartment': 1.12, 'standalone': 1.00, 'shared_compound': 0.85}
     base *= type_mult.get(features['house_type'], 1.0)
 
     # Gaussian noise ±10%
     noise = np.random.uniform(0.90, 1.10)
     base *= noise
 
-    # Hard floor 10,000 RWF — hard ceiling 350,000 RWF
-    return max(10000, min(350000, round(base / 1000) * 1000))
+    # Hard floor 10,000 RWF only — no ceiling
+    return max(10000, round(base / 1000) * 1000)
 
 
 def generate_gasabo_dataset(n_samples: int = 2000) -> pd.DataFrame:
