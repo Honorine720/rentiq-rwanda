@@ -298,10 +298,13 @@ function ReportsTab({ isDark, card }) {
   useEffect(() => {
     Promise.all([
       adminGetStats(),
-      getPredictionHistory({ limit: 500 }),
+      getPredictionHistory({ limit: 100 }),
     ])
       .then(([s, h]) => { setStats(s); setHistory(h.predictions || []); })
-      .catch((e) => setErr(e?.response?.data?.detail || 'Failed to load report data'))
+      .catch((e) => {
+        const d = e?.response?.data?.detail;
+        setErr(typeof d === 'string' ? d : d?.[0]?.msg || e?.message || 'Failed to load report data');
+      })
       .finally(() => setLoading(false));
   }, []);
 
