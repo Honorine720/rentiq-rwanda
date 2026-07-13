@@ -156,6 +156,62 @@ async def export_history_csv(admin: User = Depends(_require_admin), db: Session 
     )
 
 
+@router.get("/admin/export")
+async def admin_export_predictions(
+    period: str = Query("all", regex="^(daily|monthly|yearly|all)$"),
+    date: Optional[str] = Query(None, description="YYYY-MM-DD for daily, YYYY-MM for monthly, YYYY for yearly"),
+    admin: User = Depends(_require_admin),
+    db: Session = Depends(get_db)
+):
+    """Return filtered predictions for PDF export — admin only."""
+    q = db.query(Prediction)
+
+    if period == "daily" and date:
+        try:
+            day = datetime.strptime(date, "%Y-%m-%d")
+            q = q.filter(Prediction.created_at >= day, Prediction.created_at < day + timedelta(days=1))
+        except ValueError:
+            raise HTTPException(400, "date must be YYYY-MM-DD for daily period")
+    elif period == "monthly" and date:
+        try:
+            parts = date.split("-")
+            start = datetime(int(parts[0]), int(parts[1]), 1)
+            # first day of next month
+            if start.month == 12:
+                end = datetime(start.year + 1, 1, 1)
+            else:
+                end = datetime(start.year, start.month + 1, 1)
+            q = q.filter(Prediction.created_at >= start, Prediction.created_at < end)
+        except (ValueError, IndexError):
+            raise HTTPException(400, "date must be YYYY-MM for monthly period")
+    elif period == "yearly" and date:
+        try:
+            year = int(date)
+            q = q.filter(Prediction.created_at >= datetime(year, 1, 1),
+                         Prediction.created_at < datetime(year + 1, 1, 1))
+        except ValueError:
+            raise HTTPException(400, "date must be YYYY for yearly period")
+
+    predictions = q.order_by(Prediction.created_at.desc()).all()
+    return {
+        "period": period,
+        "date": date,
+        "total": len(predictions),
+        "predictions": [
+            {
+                "id": p.id, "district": p.district, "sector": p.sector,
+                "house_type": p.house_type, "num_bedrooms": p.num_bedrooms,
+                "floor_area_sqm": p.floor_area_sqm,
+                "predicted_rent_rwf": p.predicted_rent_rwf,
+                "predicted_rent_usd": p.predicted_rent_usd,
+                "r2_score": p.r2_score,
+                "created_at": p.created_at.isoformat() if p.created_at else None,
+            }
+            for p in predictions
+        ],
+    }
+
+
 @router.get("/{prediction_id}")
 async def get_prediction_detail(prediction_id: str, db: Session = Depends(get_db)):
     prediction = get_prediction_by_id(db, prediction_id)

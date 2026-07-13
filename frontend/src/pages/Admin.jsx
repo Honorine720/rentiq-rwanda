@@ -10,7 +10,7 @@ import {
 import { useApp } from '../context/AppContext';
 import {
   adminGetStats, adminGetUsers, adminToggleUser, adminDeleteUser,
-  getPredictionHistory, formatRWF, formatDate, getPriceTier
+  getPredictionHistory, adminExportPredictions, formatRWF, formatDate, getPriceTier
 } from '../services/api';
 
 const TABS = [
@@ -288,92 +288,139 @@ function HistoryTab({ isDark, card }) {
 }
 
 // ── Reports ───────────────────────────────────────────────────────────────────
+const PERIODS = [
+  { key: 'all',     label: 'All Time' },
+  { key: 'yearly',  label: 'Yearly' },
+  { key: 'monthly', label: 'Monthly' },
+  { key: 'daily',   label: 'Daily' },
+];
+
 function ReportsTab({ isDark, card }) {
   const [stats, setStats] = useState(null);
-  const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [downloading, setDownloading] = useState(false);
   const [err, setErr] = useState('');
+  const [period, setPeriod] = useState('all');
+  const [dateInput, setDateInput] = useState('');
+  const [downloading, setDownloading] = useState(false);
+  const [previewCount, setPreviewCount] = useState(null);
+  const [previewing, setPreviewing] = useState(false);
 
   useEffect(() => {
-    Promise.all([
-      adminGetStats(),
-      getPredictionHistory({ limit: 100 }),
-    ])
-      .then(([s, h]) => { setStats(s); setHistory(h.predictions || []); })
+    adminGetStats()
+      .then(setStats)
       .catch((e) => {
         const d = e?.response?.data?.detail;
-        setErr(typeof d === 'string' ? d : d?.[0]?.msg || e?.message || 'Failed to load report data');
+        setErr(typeof d === 'string' ? d : d?.[0]?.msg || e?.message || 'Failed to load stats');
       })
       .finally(() => setLoading(false));
   }, []);
 
+  // When period changes, reset date and preview
+  useEffect(() => {
+    setDateInput('');
+    setPreviewCount(null);
+  }, [period]);
+
+  const dateLabel = period === 'daily' ? 'YYYY-MM-DD' : period === 'monthly' ? 'YYYY-MM' : period === 'yearly' ? 'YYYY' : null;
+  const dateValid = period === 'all' || (dateInput && dateInput.trim().length > 0);
+
+  const handlePreview = async () => {
+    setPreviewing(true);
+    try {
+      const data = await adminExportPredictions({ period, date: dateInput || null });
+      setPreviewCount(data.total);
+    } catch (e) {
+      alert(e?.response?.data?.detail || e.message || 'Preview failed');
+    } finally {
+      setPreviewing(false);
+    }
+  };
+
   const handleExportPDF = async () => {
+    if (!dateValid) { alert(`Please enter a date in format: ${dateLabel}`); return; }
     setDownloading(true);
     try {
+      const exportData = await adminExportPredictions({ period, date: dateInput || null });
+      const predictions = exportData.predictions || [];
+
       const doc = new jsPDF({ orientation: 'landscape' });
 
-      // Title
+      // Header
       doc.setFontSize(18);
       doc.setTextColor(30, 64, 175);
       doc.text('RentIQ Rwanda — Predictions Report', 14, 18);
-
       doc.setFontSize(10);
       doc.setTextColor(100);
-      doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 26);
+      const periodLabel = period === 'all' ? 'All Time'
+        : period === 'yearly' ? `Year: ${dateInput}`
+        : period === 'monthly' ? `Month: ${dateInput}`
+        : `Date: ${dateInput}`;
+      doc.text(`Period: ${periodLabel}   |   Generated: ${new Date().toLocaleString()}`, 14, 26);
+      doc.text(`Total Records: ${predictions.length}`, 14, 32);
 
       // Summary stats
       if (stats) {
         doc.setFontSize(12);
         doc.setTextColor(30);
-        doc.text('Summary', 14, 36);
+        doc.text('Summary Statistics', 14, 42);
         autoTable(doc, {
-          startY: 40,
+          startY: 46,
           head: [['Metric', 'Value']],
           body: [
-            ['Total Predictions', stats.total_predictions],
-            ['Average Rent (RWF)', `RWF ${Number(stats.average_rent_rwf).toLocaleString()}`],
+            ['Total Predictions (All Time)', stats.total_predictions],
+            ['Average Rent (RWF) — All Time', `RWF ${Number(stats.average_rent_rwf).toLocaleString()}`],
             ['Total Users', stats.total_users],
             ['Active Users', stats.active_users],
             ['Predictions (last 24h)', stats.predictions_last_24h],
+            ['Records in this report', predictions.length],
           ],
           theme: 'striped',
           headStyles: { fillColor: [30, 64, 175] },
           margin: { left: 14 },
-          tableWidth: 100,
+          tableWidth: 130,
         });
       }
 
       // Predictions table
-      if (history.length > 0) {
+      if (predictions.length > 0) {
         doc.addPage();
         doc.setFontSize(12);
         doc.setTextColor(30);
-        doc.text('All Predictions', 14, 16);
+        doc.text(`Predictions — ${periodLabel} (${predictions.length} records)`, 14, 16);
         autoTable(doc, {
           startY: 20,
-          head: [['#', 'District', 'Sector', 'Bedrooms', 'Area (m²)', 'Predicted Rent (RWF)', 'Tier', 'Date']],
-          body: history.map((p, i) => [
+          head: [['#', 'District', 'Sector', 'Type', 'Beds', 'Area (m²)', 'Rent (RWF)', 'Rent (USD)', 'Tier', 'Date']],
+          body: predictions.map((p, i) => [
             i + 1,
             p.district,
             p.sector,
+            (p.house_type || '').replace(/_/g, ' '),
             p.num_bedrooms,
             p.floor_area_sqm,
             `RWF ${Number(p.predicted_rent_rwf).toLocaleString()}`,
+            p.predicted_rent_usd ? `$${Number(p.predicted_rent_usd).toFixed(2)}` : '—',
             getPriceTier(p.predicted_rent_rwf).tier,
             formatDate(p.created_at),
           ]),
           theme: 'striped',
           headStyles: { fillColor: [30, 64, 175] },
-          styles: { fontSize: 8 },
+          styles: { fontSize: 7.5 },
           margin: { left: 14, right: 14 },
         });
+      } else {
+        doc.addPage();
+        doc.setFontSize(12);
+        doc.setTextColor(150);
+        doc.text('No predictions found for the selected period.', 14, 30);
       }
 
-      doc.save(`rentiq_report_${new Date().toISOString().slice(0, 10)}.pdf`);
+      const filename = period === 'all'
+        ? `rentiq_report_all_${new Date().toISOString().slice(0, 10)}.pdf`
+        : `rentiq_report_${period}_${dateInput}.pdf`;
+      doc.save(filename);
     } catch (e) {
       console.error(e);
-      alert('PDF export failed: ' + e.message);
+      alert('PDF export failed: ' + (e?.response?.data?.detail || e.message));
     } finally {
       setDownloading(false);
     }
@@ -382,19 +429,86 @@ function ReportsTab({ isDark, card }) {
   if (loading) return <Spinner />;
   if (err) return <ErrMsg msg={err} />;
 
+  const btnBase = 'px-4 py-2 rounded-lg text-sm font-semibold transition-colors';
+
   return (
     <div className="space-y-5">
-      {/* Export PDF */}
       <div className={`rounded-xl border p-5 ${card}`}>
-        <h3 className={`font-bold mb-1 ${isDark ? 'text-white' : 'text-slate-900'}`}>Export Report</h3>
-        <p className={`text-sm mb-4 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-          Download a full PDF report with summary statistics and all prediction records.
+        <h3 className={`font-bold mb-1 ${isDark ? 'text-white' : 'text-slate-900'}`}>Export PDF Report</h3>
+        <p className={`text-sm mb-5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+          Choose a period to filter predictions, then download a PDF with summary stats and all matching records.
         </p>
-        <button onClick={handleExportPDF} disabled={downloading}
+
+        {/* Period selector */}
+        <div className="flex flex-wrap gap-2 mb-4">
+          {PERIODS.map(({ key, label }) => (
+            <button key={key} onClick={() => setPeriod(key)}
+              className={`${btnBase} ${
+                period === key
+                  ? 'bg-blue-600 text-white'
+                  : isDark ? 'bg-slate-700 text-slate-300 hover:bg-slate-600' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+              }`}>
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {/* Date input (hidden for 'all') */}
+        {period !== 'all' && (
+          <div className="flex items-center gap-3 mb-4">
+            <input
+              type="text"
+              placeholder={dateLabel}
+              value={dateInput}
+              onChange={e => { setDateInput(e.target.value); setPreviewCount(null); }}
+              className={`px-3 py-2 rounded-lg border text-sm w-44 ${
+                isDark ? 'bg-slate-700 border-slate-600 text-white placeholder-slate-400'
+                       : 'bg-white border-slate-300 text-slate-900 placeholder-slate-400'
+              }`}
+            />
+            <button onClick={handlePreview} disabled={!dateInput || previewing}
+              className={`${btnBase} ${
+                isDark ? 'bg-slate-700 text-slate-300 hover:bg-slate-600 disabled:opacity-40'
+                       : 'bg-slate-100 text-slate-700 hover:bg-slate-200 disabled:opacity-40'
+              }`}>
+              {previewing ? 'Checking…' : 'Preview Count'}
+            </button>
+            {previewCount !== null && (
+              <span className={`text-sm font-semibold ${
+                previewCount > 0 ? 'text-green-600' : isDark ? 'text-slate-400' : 'text-slate-500'
+              }`}>
+                {previewCount} record{previewCount !== 1 ? 's' : ''} found
+              </span>
+            )}
+          </div>
+        )}
+
+        <button onClick={handleExportPDF} disabled={downloading || !dateValid}
           className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm transition-colors disabled:opacity-60">
           <Download size={16} /> {downloading ? 'Generating PDF…' : 'Download PDF Report'}
         </button>
       </div>
+
+      {/* Summary grid */}
+      {stats && (
+        <div className={`rounded-xl border p-5 ${card}`}>
+          <h3 className={`font-bold mb-4 ${isDark ? 'text-white' : 'text-slate-900'}`}>Summary Statistics (All Time)</h3>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+            {[
+              { label: 'Total Predictions', value: stats.total_predictions },
+              { label: 'Average Rent',      value: formatRWF(stats.average_rent_rwf) },
+              { label: 'Total Users',       value: stats.total_users },
+              { label: 'Active Users',      value: stats.active_users },
+              { label: 'Predictions (24h)', value: stats.predictions_last_24h },
+            ].map(({ label, value }) => (
+              <div key={label} className={`rounded-lg p-3 ${isDark ? 'bg-slate-700' : 'bg-slate-50'}`}>
+                <p className={`text-xs font-medium mb-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{label}</p>
+                <p className={`text-lg font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>{value}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Monthly Trend */}
       {stats?.monthly_trend?.length > 0 && (
@@ -414,27 +528,6 @@ function ReportsTab({ isDark, card }) {
                 </div>
               );
             })}
-          </div>
-        </div>
-      )}
-
-      {/* Summary grid */}
-      {stats && (
-        <div className={`rounded-xl border p-5 ${card}`}>
-          <h3 className={`font-bold mb-4 ${isDark ? 'text-white' : 'text-slate-900'}`}>Summary Statistics</h3>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-            {[
-              { label: 'Total Predictions', value: stats.total_predictions },
-              { label: 'Average Rent',      value: formatRWF(stats.average_rent_rwf) },
-              { label: 'Total Users',       value: stats.total_users },
-              { label: 'Active Users',      value: stats.active_users },
-              { label: 'Predictions (24h)', value: stats.predictions_last_24h },
-            ].map(({ label, value }) => (
-              <div key={label} className={`rounded-lg p-3 ${isDark ? 'bg-slate-700' : 'bg-slate-50'}`}>
-                <p className={`text-xs font-medium mb-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{label}</p>
-                <p className={`text-lg font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>{value}</p>
-              </div>
-            ))}
           </div>
         </div>
       )}

@@ -218,6 +218,13 @@ export const adminExportCSV = async () => {
   return response.data;
 };
 
+export const adminExportPredictions = async ({ period = 'all', date = null } = {}) => {
+  const params = new URLSearchParams({ period });
+  if (date) params.append('date', date);
+  const response = await apiClient.get(`/api/history/admin/export?${params}`);
+  return response.data;
+};
+
 /**
  * Helper Functions
  */
