@@ -224,9 +224,11 @@ export const adminExportCSV = async () => {
   return response.data;
 };
 
-export const adminExportPredictions = async ({ period = 'all', date = null } = {}) => {
+export const adminExportPredictions = async ({ period = 'all', date = null, rental_type = null, num_days = null } = {}) => {
   const params = new URLSearchParams({ period });
   if (date) params.append('date', date);
+  if (rental_type && rental_type !== 'all') params.append('rental_type', rental_type);
+  if (num_days !== null) params.append('num_days', num_days);
   const response = await apiClient.get(`/api/history/admin/export?${params}`);
   return response.data;
 };

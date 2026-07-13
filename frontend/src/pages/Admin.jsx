@@ -295,6 +295,20 @@ const PERIODS = [
   { key: 'daily',   label: 'Daily' },
 ];
 
+// Rental type filter options
+const RENTAL_TYPE_FILTERS = [
+  { key: 'all',     label: 'All Types' },
+  { key: 'monthly', label: 'Monthly' },
+  { key: 'weekly',  label: 'Weekly' },
+  { key: 'daily',   label: 'Daily (any)' },
+  { key: 'daily_1', label: '1 Day' },
+  { key: 'daily_2', label: '2 Days' },
+  { key: 'daily_3', label: '3 Days' },
+  { key: 'daily_4', label: '4 Days' },
+  { key: 'daily_5', label: '5 Days' },
+  { key: 'daily_6', label: '6 Days' },
+];
+
 function ReportsTab({ isDark, card }) {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -304,6 +318,7 @@ function ReportsTab({ isDark, card }) {
   const [downloading, setDownloading] = useState(false);
   const [previewCount, setPreviewCount] = useState(null);
   const [previewing, setPreviewing] = useState(false);
+  const [rentalFilter, setRentalFilter] = useState('all');
 
   useEffect(() => {
     adminGetStats()
@@ -315,11 +330,24 @@ function ReportsTab({ isDark, card }) {
       .finally(() => setLoading(false));
   }, []);
 
-  // When period changes, reset date and preview
+  // When period or rental filter changes, reset preview
   useEffect(() => {
     setDateInput('');
     setPreviewCount(null);
   }, [period]);
+
+  useEffect(() => { setPreviewCount(null); }, [rentalFilter]);
+
+  // Resolve rental_type + num_days from rentalFilter key
+  const resolveRentalParams = () => {
+    if (rentalFilter === 'all') return { rental_type: null, num_days: null };
+    if (rentalFilter === 'monthly') return { rental_type: 'monthly', num_days: null };
+    if (rentalFilter === 'weekly') return { rental_type: 'weekly', num_days: null };
+    if (rentalFilter === 'daily') return { rental_type: 'daily', num_days: null };
+    // daily_N
+    const days = parseInt(rentalFilter.split('_')[1], 10);
+    return { rental_type: 'daily', num_days: days };
+  };
 
   const dateLabel = period === 'daily' ? 'YYYY-MM-DD' : period === 'monthly' ? 'YYYY-MM' : period === 'yearly' ? 'YYYY' : null;
   const dateValid = period === 'all' || (dateInput && dateInput.trim().length > 0);
@@ -327,7 +355,8 @@ function ReportsTab({ isDark, card }) {
   const handlePreview = async () => {
     setPreviewing(true);
     try {
-      const data = await adminExportPredictions({ period, date: dateInput || null });
+      const { rental_type, num_days } = resolveRentalParams();
+      const data = await adminExportPredictions({ period, date: dateInput || null, rental_type, num_days });
       setPreviewCount(data.total);
     } catch (e) {
       alert(e?.response?.data?.detail || e.message || 'Preview failed');
@@ -340,7 +369,8 @@ function ReportsTab({ isDark, card }) {
     if (!dateValid) { alert(`Please enter a date in format: ${dateLabel}`); return; }
     setDownloading(true);
     try {
-      const exportData = await adminExportPredictions({ period, date: dateInput || null });
+      const { rental_type, num_days } = resolveRentalParams();
+      const exportData = await adminExportPredictions({ period, date: dateInput || null, rental_type, num_days });
       const predictions = exportData.predictions || [];
 
       const doc = new jsPDF({ orientation: 'landscape' });
@@ -355,7 +385,8 @@ function ReportsTab({ isDark, card }) {
         : period === 'yearly' ? `Year: ${dateInput}`
         : period === 'monthly' ? `Month: ${dateInput}`
         : `Date: ${dateInput}`;
-      doc.text(`Period: ${periodLabel}   |   Generated: ${new Date().toLocaleString()}`, 14, 26);
+      const rentalLabel = RENTAL_TYPE_FILTERS.find(r => r.key === rentalFilter)?.label || 'All Types';
+      doc.text(`Period: ${periodLabel}   |   Rental Type: ${rentalLabel}   |   Generated: ${new Date().toLocaleString()}`, 14, 26);
       doc.text(`Total Records: ${predictions.length}`, 14, 32);
 
       // Summary stats
@@ -372,6 +403,7 @@ function ReportsTab({ isDark, card }) {
             ['Total Users', stats.total_users],
             ['Active Users', stats.active_users],
             ['Predictions (last 24h)', stats.predictions_last_24h],
+            ['Rental Type Filter', rentalLabel],
             ['Records in this report', predictions.length],
           ],
           theme: 'striped',
@@ -386,10 +418,10 @@ function ReportsTab({ isDark, card }) {
         doc.addPage();
         doc.setFontSize(12);
         doc.setTextColor(30);
-        doc.text(`Predictions — ${periodLabel} (${predictions.length} records)`, 14, 16);
+        doc.text(`Predictions — ${periodLabel} | ${rentalLabel} (${predictions.length} records)`, 14, 16);
         autoTable(doc, {
           startY: 20,
-          head: [['#', 'District', 'Sector', 'Type', 'Beds', 'Area (m²)', 'Rent (RWF)', 'Rent (USD)', 'Tier', 'Date']],
+          head: [['#', 'District', 'Sector', 'Type', 'Beds', 'Area (m²)', 'Rental Type', 'Days', 'Rent (RWF)', 'Rent (USD)', 'Tier', 'Date']],
           body: predictions.map((p, i) => [
             i + 1,
             p.district,
@@ -397,6 +429,8 @@ function ReportsTab({ isDark, card }) {
             (p.house_type || '').replace(/_/g, ' '),
             p.num_bedrooms,
             p.floor_area_sqm,
+            p.rental_type || 'monthly',
+            p.num_days || 30,
             `RWF ${Number(p.predicted_rent_rwf).toLocaleString()}`,
             p.predicted_rent_usd ? `$${Number(p.predicted_rent_usd).toFixed(2)}` : '—',
             getPriceTier(p.predicted_rent_rwf).tier,
@@ -414,9 +448,10 @@ function ReportsTab({ isDark, card }) {
         doc.text('No predictions found for the selected period.', 14, 30);
       }
 
+      const rtSuffix = rentalFilter !== 'all' ? `_${rentalFilter}` : '';
       const filename = period === 'all'
-        ? `rentiq_report_all_${new Date().toISOString().slice(0, 10)}.pdf`
-        : `rentiq_report_${period}_${dateInput}.pdf`;
+        ? `rentiq_report_all${rtSuffix}_${new Date().toISOString().slice(0, 10)}.pdf`
+        : `rentiq_report_${period}_${dateInput}${rtSuffix}.pdf`;
       doc.save(filename);
     } catch (e) {
       console.error(e);
@@ -451,6 +486,23 @@ function ReportsTab({ isDark, card }) {
               {label}
             </button>
           ))}
+        </div>
+
+        {/* Rental type filter */}
+        <div className="mb-4">
+          <p className={`text-xs font-semibold mb-2 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>RENTAL TYPE</p>
+          <div className="flex flex-wrap gap-2">
+            {RENTAL_TYPE_FILTERS.map(({ key, label }) => (
+              <button key={key} onClick={() => setRentalFilter(key)}
+                className={`${btnBase} text-xs py-1.5 ${
+                  rentalFilter === key
+                    ? 'bg-emerald-600 text-white'
+                    : isDark ? 'bg-slate-700 text-slate-300 hover:bg-slate-600' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                }`}>
+                {label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Date input (hidden for 'all') */}

@@ -160,6 +160,8 @@ async def export_history_csv(admin: User = Depends(_require_admin), db: Session 
 async def admin_export_predictions(
     period: str = Query("all", regex="^(daily|monthly|yearly|all)$"),
     date: Optional[str] = Query(None, description="YYYY-MM-DD for daily, YYYY-MM for monthly, YYYY for yearly"),
+    rental_type: Optional[str] = Query(None, description="Filter by rental type: monthly, weekly, daily"),
+    num_days: Optional[int] = Query(None, description="Filter by exact num_days (for daily stays: 1-6)"),
     admin: User = Depends(_require_admin),
     db: Session = Depends(get_db)
 ):
@@ -176,7 +178,6 @@ async def admin_export_predictions(
         try:
             parts = date.split("-")
             start = datetime(int(parts[0]), int(parts[1]), 1)
-            # first day of next month
             if start.month == 12:
                 end = datetime(start.year + 1, 1, 1)
             else:
@@ -193,9 +194,25 @@ async def admin_export_predictions(
             raise HTTPException(400, "date must be YYYY for yearly period")
 
     predictions = q.order_by(Prediction.created_at.desc()).all()
+
+    # Post-filter by rental_type / num_days (stored inside input_features JSON)
+    def _get_input(p, key, default=None):
+        try:
+            return (p.input_features or {}).get(key, default)
+        except Exception:
+            return default
+
+    if rental_type and rental_type != "all":
+        predictions = [p for p in predictions if _get_input(p, "rental_type", "monthly") == rental_type]
+
+    if num_days is not None:
+        predictions = [p for p in predictions if int(_get_input(p, "num_days", 30) or 30) == num_days]
+
     return {
         "period": period,
         "date": date,
+        "rental_type": rental_type,
+        "num_days": num_days,
         "total": len(predictions),
         "predictions": [
             {
@@ -206,6 +223,8 @@ async def admin_export_predictions(
                 "predicted_rent_usd": p.predicted_rent_usd,
                 "r2_score": p.r2_score,
                 "created_at": p.created_at.isoformat() if p.created_at else None,
+                "rental_type": _get_input(p, "rental_type", "monthly"),
+                "num_days": _get_input(p, "num_days", 30),
             }
             for p in predictions
         ],
