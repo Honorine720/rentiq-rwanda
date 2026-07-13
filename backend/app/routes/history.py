@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import Optional
 from jose import jwt, JWTError
+from datetime import datetime, timedelta
 import os
 import csv
 import io
@@ -100,24 +101,26 @@ async def get_prediction_statistics(db: Session = Depends(get_db)):
 @router.get("/admin/stats")
 async def admin_stats(admin: User = Depends(_require_admin), db: Session = Depends(get_db)):
     """Full stats for admin dashboard."""
-    from datetime import timedelta
     total = db.query(func.count(Prediction.id)).scalar() or 0
     avg_rent = db.query(func.avg(Prediction.predicted_rent_rwf)).scalar() or 0
     total_users = db.query(func.count(User.id)).scalar() or 0
     active_users = db.query(func.count(User.id)).filter(User.is_active == True).scalar() or 0
 
-    yesterday = __import__('datetime').datetime.utcnow() - timedelta(days=1)
+    yesterday = datetime.utcnow() - timedelta(days=1)
     recent = db.query(func.count(Prediction.id)).filter(Prediction.created_at >= yesterday).scalar() or 0
 
     by_district = db.query(Prediction.district, func.count(Prediction.id)).group_by(Prediction.district).all()
     by_type = db.query(Prediction.house_type, func.count(Prediction.id)).group_by(Prediction.house_type).all()
 
-    # Monthly trend (last 6 months)
-    monthly = db.query(
-        func.strftime('%Y-%m', Prediction.created_at).label('month'),
-        func.count(Prediction.id).label('count'),
-        func.avg(Prediction.predicted_rent_rwf).label('avg_rent')
-    ).group_by('month').order_by('month').limit(6).all()
+    try:
+        monthly_raw = db.query(
+            func.strftime('%Y-%m', Prediction.created_at).label('month'),
+            func.count(Prediction.id).label('count'),
+            func.avg(Prediction.predicted_rent_rwf).label('avg_rent')
+        ).group_by('month').order_by('month').limit(6).all()
+        monthly = [{'month': m, 'count': c, 'avg_rent': round(r or 0, 0)} for m, c, r in monthly_raw]
+    except Exception:
+        monthly = []
 
     return {
         "total_predictions": total,
@@ -127,7 +130,7 @@ async def admin_stats(admin: User = Depends(_require_admin), db: Session = Depen
         "predictions_last_24h": recent,
         "by_district": {d: c for d, c in by_district},
         "by_house_type": {t: c for t, c in by_type},
-        "monthly_trend": [{"month": m, "count": c, "avg_rent": round(r or 0, 0)} for m, c, r in monthly],
+        "monthly_trend": monthly,
     }
 
 

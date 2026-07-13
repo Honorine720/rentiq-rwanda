@@ -93,14 +93,33 @@ class User(Base):
 
 def init_db():
     """
-    Initialize database - create all tables
-    Call this on application startup
+    Initialize database - create all tables, and run safe migrations.
     """
     try:
         Base.metadata.create_all(bind=engine)
         print("✓ Database initialized")
     except Exception as e:
         print(f"⚠ Database init failed (predictions won't be saved): {e}")
+
+    # Safe migration: add user_id column if it doesn't exist yet
+    try:
+        with engine.connect() as conn:
+            if "sqlite" in DATABASE_URL:
+                result = conn.execute(__import__('sqlalchemy').text("PRAGMA table_info(predictions)"))
+                columns = [row[1] for row in result]
+                if "user_id" not in columns:
+                    conn.execute(__import__('sqlalchemy').text("ALTER TABLE predictions ADD COLUMN user_id VARCHAR"))
+                    conn.commit()
+                    print("✓ Migration: added user_id column to predictions")
+            else:
+                # PostgreSQL
+                conn.execute(__import__('sqlalchemy').text(
+                    "ALTER TABLE predictions ADD COLUMN IF NOT EXISTS user_id VARCHAR"
+                ))
+                conn.commit()
+                print("✓ Migration: ensured user_id column exists")
+    except Exception as e:
+        print(f"⚠ Migration warning: {e}")
 
 
 def get_db():
