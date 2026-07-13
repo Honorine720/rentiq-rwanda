@@ -40,7 +40,10 @@ class Prediction(Base):
     
     # Primary key
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    
+
+    # Owner (nullable for legacy/anonymous predictions)
+    user_id = Column(String, nullable=True, index=True)
+
     # Input features (stored as JSON for flexibility)
     input_features = Column(JSON, nullable=False)
     
@@ -112,20 +115,13 @@ def get_db():
         db.close()
 
 
-def create_prediction_record(db, prediction_request: dict, prediction_result: dict) -> Prediction:
+def create_prediction_record(db, prediction_request: dict, prediction_result: dict, user_id: str = None) -> Prediction:
     """
     Create a new prediction record in the database
-    
-    Args:
-        db: SQLAlchemy database session
-        prediction_request: Input features dictionary
-        prediction_result: Prediction result dictionary
-        
-    Returns:
-        Created Prediction ORM object
     """
     prediction = Prediction(
         id=prediction_result.get('prediction_id', str(uuid.uuid4())),
+        user_id=user_id,
         input_features=prediction_request,
         district=prediction_request.get('district'),
         sector=prediction_request.get('sector'),
@@ -150,27 +146,17 @@ def create_prediction_record(db, prediction_request: dict, prediction_result: di
     return prediction
 
 
-def get_prediction_history(db, limit: int = 20, district: str = None, skip: int = 0):
+def get_prediction_history(db, limit: int = 20, district: str = None, skip: int = 0, user_id: str = None):
     """
-    Retrieve prediction history with optional filtering
-    
-    Args:
-        db: SQLAlchemy database session
-        limit: Maximum number of records to return
-        district: Optional district filter
-        skip: Number of records to skip (for pagination)
-        
-    Returns:
-        List of Prediction objects
+    Retrieve prediction history with optional filtering by district and/or user.
     """
     query = db.query(Prediction).order_by(Prediction.created_at.desc())
-    
     if district:
         query = query.filter(Prediction.district == district)
-    
+    if user_id:
+        query = query.filter(Prediction.user_id == user_id)
     total = query.count()
     predictions = query.offset(skip).limit(limit).all()
-    
     return predictions, total
 
 

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { NavLink, Link, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, BarChart2, History, Info, Menu, X, MapPin, Sun, Moon, Globe, LogIn, UserPlus, LogOut, ShieldCheck } from 'lucide-react';
+import { LayoutDashboard, BarChart2, History, Info, Menu, X, MapPin, Sun, Moon, Globe, LogIn, UserPlus, LogOut, ShieldCheck, User } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
 const LANGS = [
@@ -110,18 +110,23 @@ export default function Navbar() {
             {/* Auth buttons */}
             {auth ? (
               <div className="hidden md:flex items-center gap-2">
-                <span className={`flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-lg ${
-                  isDark ? 'text-slate-300 bg-slate-700' : 'text-slate-700 bg-slate-100'
-                }`}>
-                  {auth.role === 'admin' && <ShieldCheck size={14} className="text-amber-500" />}
-                  {auth.full_name.split(' ')[0]}
-                </span>
+                {auth.role === 'admin' && (
+                  <Link to="/admin"
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors bg-amber-500 text-white hover:bg-amber-600`}>
+                    <ShieldCheck size={14} /> Admin
+                  </Link>
+                )}
+                <Link to="/profile"
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors ${
+                    isDark ? 'text-slate-300 hover:bg-slate-700' : 'text-slate-600 hover:bg-slate-100'
+                  }`}>
+                  <User size={15} /> {auth.full_name.split(' ')[0]}
+                </Link>
                 <button
                   onClick={() => { logout(); navigate('/'); }}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors ${
                     isDark ? 'text-slate-300 hover:bg-slate-700' : 'text-slate-600 hover:bg-slate-100'
-                  }`}
-                >
+                  }`}>
                   <LogOut size={15} /> Sign Out
                 </button>
               </div>
@@ -166,14 +171,23 @@ export default function Navbar() {
             ))}
             <div className={`border-t mt-1 pt-2 ${isDark ? 'border-slate-700' : 'border-slate-100'}`}>
               {auth ? (
-                <button
-                  onClick={() => { logout(); navigate('/'); setMobileOpen(false); }}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold w-full ${
-                    isDark ? 'text-slate-300 hover:bg-slate-700' : 'text-slate-600 hover:bg-slate-100'
-                  }`}
-                >
-                  <LogOut size={16} /> Sign Out
-                </button>
+                <>
+                  {auth.role === 'admin' && (
+                    <NavLink to="/admin" onClick={() => setMobileOpen(false)} className={linkClasses}>
+                      <ShieldCheck size={16} /> Admin Dashboard
+                    </NavLink>
+                  )}
+                  <NavLink to="/profile" onClick={() => setMobileOpen(false)} className={linkClasses}>
+                    <User size={16} /> My Profile
+                  </NavLink>
+                  <button
+                    onClick={() => { logout(); navigate('/'); setMobileOpen(false); }}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold w-full ${
+                      isDark ? 'text-slate-300 hover:bg-slate-700' : 'text-slate-600 hover:bg-slate-100'
+                    }`}>
+                    <LogOut size={16} /> Sign Out
+                  </button>
+                </>
               ) : (
                 <>
                   <NavLink to="/login" onClick={() => setMobileOpen(false)} className={linkClasses}>

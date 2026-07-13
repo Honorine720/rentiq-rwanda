@@ -2,12 +2,15 @@
 Prediction Route for RentIQ Rwanda API
 Handles POST /api/predict endpoint
 """
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Header
 from sqlalchemy.orm import Session
 from datetime import datetime
 import uuid
 import sys
 from pathlib import Path
+from typing import Optional
+from jose import jwt, JWTError
+import os
 
 # Add parent directory to path for imports
 sys.path.append(str(Path(__file__).parent.parent.parent))
@@ -25,6 +28,20 @@ from app.ml.predict import get_predictor
 
 # Create router
 router = APIRouter(prefix="/api", tags=["Prediction"])
+
+SECRET_KEY = os.getenv("JWT_SECRET_KEY", "rentiq-rwanda-secret-change-in-prod")
+ALGORITHM = "HS256"
+
+
+def _get_user_id(authorization: Optional[str] = Header(None)) -> Optional[str]:
+    """Extract user_id from Bearer token if present."""
+    if not authorization or not authorization.startswith("Bearer "):
+        return None
+    try:
+        payload = jwt.decode(authorization.split(" ", 1)[1], SECRET_KEY, algorithms=[ALGORITHM])
+        return payload.get("sub")
+    except JWTError:
+        return None
 
 
 @router.post(
@@ -58,7 +75,8 @@ router = APIRouter(prefix="/api", tags=["Prediction"])
 )
 async def predict_rent(
     request: PredictionRequest,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    user_id: Optional[str] = Depends(_get_user_id)
 ):
     """
     **Predict monthly rent price for a property in Rwanda**
@@ -122,7 +140,7 @@ async def predict_rent(
         
         # Log prediction to database
         try:
-            create_prediction_record(db, input_data, result)
+            create_prediction_record(db, input_data, result, user_id=user_id)
         except Exception as db_error:
             # Don't fail the request if database logging fails
             print(f"Warning: Failed to log prediction to database: {db_error}")

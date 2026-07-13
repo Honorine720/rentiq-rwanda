@@ -19,17 +19,16 @@ const apiClient = axios.create({
 // Request interceptor - add auth tokens, logging, etc.
 apiClient.interceptors.request.use(
   (config) => {
-    // Log request in development
     if (import.meta.env.DEV) {
       console.log(`🚀 API Request: ${config.method.toUpperCase()} ${config.url}`);
     }
-    
-    // Add authentication token if available (for future use)
-    const token = localStorage.getItem('auth_token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    const stored = localStorage.getItem('rentiq_auth');
+    if (stored) {
+      try {
+        const { access_token } = JSON.parse(stored);
+        if (access_token) config.headers.Authorization = `Bearer ${access_token}`;
+      } catch {}
     }
-    
     return config;
   },
   (error) => {
@@ -180,6 +179,42 @@ export const registerAdmin = async (data) => {
 
 export const loginUser = async (data) => {
   const response = await apiClient.post('/api/auth/login', data);
+  return response.data;
+};
+
+export const changePassword = async (data) => {
+  const response = await apiClient.post('/api/auth/change-password', data);
+  return response.data;
+};
+
+export const getMe = async () => {
+  const response = await apiClient.get('/api/auth/me');
+  return response.data;
+};
+
+// Admin
+export const adminGetUsers = async () => {
+  const response = await apiClient.get('/api/auth/users');
+  return response.data;
+};
+
+export const adminToggleUser = async (userId) => {
+  const response = await apiClient.patch(`/api/auth/users/${userId}/toggle`);
+  return response.data;
+};
+
+export const adminDeleteUser = async (userId) => {
+  const response = await apiClient.delete(`/api/auth/users/${userId}`);
+  return response.data;
+};
+
+export const adminGetStats = async () => {
+  const response = await apiClient.get('/api/history/admin/stats');
+  return response.data;
+};
+
+export const adminExportCSV = async () => {
+  const response = await apiClient.get('/api/history/export/csv', { responseType: 'blob' });
   return response.data;
 };
 

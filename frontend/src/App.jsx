@@ -8,6 +8,8 @@ import History from './pages/History';
 import About from './pages/About';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import Profile from './pages/Profile';
+import Admin from './pages/Admin';
 
 function AppShell() {
   const { theme } = useApp();
@@ -26,6 +28,8 @@ function AppShell() {
           <Route path="/about" element={<About />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/admin" element={<Admin />} />
         </Routes>
       </div>
     </div>
