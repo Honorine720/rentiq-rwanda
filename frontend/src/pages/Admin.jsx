@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { Link } from 'react-router-dom';
 import {
   ShieldCheck, Users, BarChart2, History, Download,
@@ -306,9 +308,6 @@ function ReportsTab({ isDark, card }) {
   const handleExportPDF = async () => {
     setDownloading(true);
     try {
-      const { default: jsPDF } = await import('jspdf');
-      const { default: autoTable } = await import('jspdf-autotable');
-
       const doc = new jsPDF({ orientation: 'landscape' });
 
       // Title
