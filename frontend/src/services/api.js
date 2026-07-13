@@ -59,6 +59,12 @@ apiClient.interceptors.response.use(
         case 400:
           error.userMessage = data.detail?.detail || 'Invalid input data. Please check your entries.';
           break;
+        case 401:
+          error.userMessage = data?.detail || 'Invalid email or password.';
+          break;
+        case 403:
+          error.userMessage = data?.detail || 'Access denied.';
+          break;
         case 404:
           error.userMessage = 'Resource not found.';
           break;

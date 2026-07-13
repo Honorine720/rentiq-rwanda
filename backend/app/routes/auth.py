@@ -90,7 +90,7 @@ def login(body: UserLogin, db: Session = Depends(get_db)):
     if not user or not _verify(body.password, user.hashed_password):
         raise HTTPException(status_code=401, detail="Invalid email or password")
     if not user.is_active:
-        raise HTTPException(status_code=403, detail="Account is disabled")
+        raise HTTPException(status_code=403, detail="Your account has been deactivated by the admin. To regain access, contact admin via WhatsApp: +250786905537")
     token = _create_token({"sub": user.id, "role": user.role})
     return TokenResponse(access_token=token, role=user.role, full_name=user.full_name)
 
