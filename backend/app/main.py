@@ -17,6 +17,7 @@ load_dotenv()
 from app.models.database import init_db
 from app.routes.predict import router as predict_router
 from app.routes.history import router as history_router
+from app.routes.auth import router as auth_router
 from app.models.schemas import HealthResponse
 
 # Get allowed origins from environment
@@ -153,6 +154,7 @@ app.add_middleware(
 )
 
 # Include routers
+app.include_router(auth_router)
 app.include_router(predict_router)
 app.include_router(history_router)
 

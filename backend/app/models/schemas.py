@@ -225,6 +225,45 @@ class PredictionHistoryResponse(BaseModel):
     predictions: List[PredictionHistoryItem] = Field(..., description="List of prediction records")
 
 
+# Auth Schemas
+class UserRegister(BaseModel):
+    """Request body for user registration"""
+    email: str = Field(..., description="User email address")
+    full_name: str = Field(..., min_length=2, max_length=100)
+    password: str = Field(..., min_length=6, description="Password (min 6 chars)")
+
+
+class AdminRegister(UserRegister):
+    """Admin registration — requires secret key"""
+    admin_secret: str = Field(..., description="Admin registration secret key")
+
+
+class UserLogin(BaseModel):
+    """Request body for login"""
+    email: str
+    password: str
+
+
+class TokenResponse(BaseModel):
+    """JWT token response"""
+    access_token: str
+    token_type: str = "bearer"
+    role: str
+    full_name: str
+
+
+class UserOut(BaseModel):
+    """Public user info"""
+    id: str
+    email: str
+    full_name: str
+    role: str
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
 # Conversion helper
 def prediction_request_to_dict(request: PredictionRequest) -> dict:
     """

@@ -2,7 +2,7 @@
 Database Models for RentIQ Rwanda
 SQLAlchemy ORM for logging predictions to SQLite
 """
-from sqlalchemy import create_engine, Column, String, Integer, Float, DateTime, JSON
+from sqlalchemy import create_engine, Column, String, Integer, Float, DateTime, JSON, Boolean
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from datetime import datetime
@@ -70,6 +70,22 @@ class Prediction(Base):
     
     def __repr__(self):
         return f"<Prediction(id={self.id}, district={self.district}, rent={self.predicted_rent_rwf})>"
+
+
+class User(Base):
+    """ORM model for user accounts"""
+    __tablename__ = "users"
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    email = Column(String, unique=True, index=True, nullable=False)
+    full_name = Column(String, nullable=False)
+    hashed_password = Column(String, nullable=False)
+    role = Column(String, default="user", nullable=False)  # "user" or "admin"
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    def __repr__(self):
+        return f"<User(id={self.id}, email={self.email}, role={self.role})>"
 
 
 def init_db():

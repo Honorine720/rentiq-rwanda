@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { NavLink, Link } from 'react-router-dom';
-import { LayoutDashboard, BarChart2, History, Info, Menu, X, MapPin, Sun, Moon, Globe } from 'lucide-react';
+import { NavLink, Link, useNavigate } from 'react-router-dom';
+import { LayoutDashboard, BarChart2, History, Info, Menu, X, MapPin, Sun, Moon, Globe, LogIn, UserPlus, LogOut, ShieldCheck } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
 const LANGS = [
@@ -10,10 +10,11 @@ const LANGS = [
 ];
 
 export default function Navbar() {
-  const { theme, toggleTheme, lang, setLang, t } = useApp();
+  const { theme, toggleTheme, lang, setLang, t, auth, logout } = useApp();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [langOpen, setLangOpen] = useState(false);
   const isDark = theme === 'dark';
+  const navigate = useNavigate();
 
   const navLinks = [
     { to: '/', label: t('nav_home'), icon: LayoutDashboard },
@@ -62,7 +63,7 @@ export default function Navbar() {
             ))}
           </div>
 
-          {/* Controls: Lang + Theme + Mobile */}
+          {/* Controls: Lang + Theme + Auth + Mobile */}
           <div className="flex items-center gap-2">
 
             {/* Language Switcher */}
@@ -106,6 +107,43 @@ export default function Navbar() {
               {isDark ? <Sun size={18} /> : <Moon size={18} />}
             </button>
 
+            {/* Auth buttons */}
+            {auth ? (
+              <div className="hidden md:flex items-center gap-2">
+                <span className={`flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-lg ${
+                  isDark ? 'text-slate-300 bg-slate-700' : 'text-slate-700 bg-slate-100'
+                }`}>
+                  {auth.role === 'admin' && <ShieldCheck size={14} className="text-amber-500" />}
+                  {auth.full_name.split(' ')[0]}
+                </span>
+                <button
+                  onClick={() => { logout(); navigate('/'); }}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors ${
+                    isDark ? 'text-slate-300 hover:bg-slate-700' : 'text-slate-600 hover:bg-slate-100'
+                  }`}
+                >
+                  <LogOut size={15} /> Sign Out
+                </button>
+              </div>
+            ) : (
+              <div className="hidden md:flex items-center gap-2">
+                <Link
+                  to="/login"
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors ${
+                    isDark ? 'text-slate-300 hover:bg-slate-700' : 'text-slate-600 hover:bg-slate-100'
+                  }`}
+                >
+                  <LogIn size={15} /> Sign In
+                </Link>
+                <Link
+                  to="/register"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+                >
+                  <UserPlus size={15} /> Sign Up
+                </Link>
+              </div>
+            )}
+
             {/* Mobile toggle */}
             <button
               onClick={() => setMobileOpen(!mobileOpen)}
@@ -126,6 +164,27 @@ export default function Navbar() {
                 {label}
               </NavLink>
             ))}
+            <div className={`border-t mt-1 pt-2 ${isDark ? 'border-slate-700' : 'border-slate-100'}`}>
+              {auth ? (
+                <button
+                  onClick={() => { logout(); navigate('/'); setMobileOpen(false); }}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold w-full ${
+                    isDark ? 'text-slate-300 hover:bg-slate-700' : 'text-slate-600 hover:bg-slate-100'
+                  }`}
+                >
+                  <LogOut size={16} /> Sign Out
+                </button>
+              ) : (
+                <>
+                  <NavLink to="/login" onClick={() => setMobileOpen(false)} className={linkClasses}>
+                    <LogIn size={16} /> Sign In
+                  </NavLink>
+                  <NavLink to="/register" onClick={() => setMobileOpen(false)} className={linkClasses}>
+                    <UserPlus size={16} /> Sign Up
+                  </NavLink>
+                </>
+              )}
+            </div>
           </div>
         )}
       </div>

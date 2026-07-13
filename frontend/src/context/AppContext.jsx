@@ -1,4 +1,4 @@
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useState, useCallback } from 'react';
 
 export const translations = {
   en: {
@@ -157,8 +157,27 @@ export function AppProvider({ children }) {
   const [lang, setLang] = useState('en');
   const t = (key) => translations[lang]?.[key] ?? translations.en[key] ?? key;
   const toggleTheme = () => setTheme((p) => (p === 'light' ? 'dark' : 'light'));
+
+  // Auth state — persisted in localStorage
+  const [auth, setAuth] = useState(() => {
+    try {
+      const stored = localStorage.getItem('rentiq_auth');
+      return stored ? JSON.parse(stored) : null;
+    } catch { return null; }
+  });
+
+  const login = useCallback((tokenData) => {
+    localStorage.setItem('rentiq_auth', JSON.stringify(tokenData));
+    setAuth(tokenData);
+  }, []);
+
+  const logout = useCallback(() => {
+    localStorage.removeItem('rentiq_auth');
+    setAuth(null);
+  }, []);
+
   return (
-    <AppContext.Provider value={{ theme, toggleTheme, lang, setLang, t }}>
+    <AppContext.Provider value={{ theme, toggleTheme, lang, setLang, t, auth, login, logout }}>
       <div className={theme === 'dark' ? 'dark' : ''}>{children}</div>
     </AppContext.Provider>
   );
