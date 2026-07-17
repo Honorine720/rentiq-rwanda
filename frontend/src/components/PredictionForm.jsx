@@ -419,60 +419,104 @@ export default function PredictionForm({ onPredictionComplete }) {
             </div>
 
             {/* Fully Furnished master toggle */}
-            <label className={`flex items-start gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all ${
-              formData.is_furnished
-                ? 'border-amber-500 bg-amber-50 dark:bg-amber-900/20'
-                : isDark ? 'border-slate-700 hover:border-slate-500' : 'border-slate-200 hover:border-slate-300'
-            }`}>
-              <input type="checkbox" name="is_furnished" checked={formData.is_furnished} onChange={handleChange} className="mt-0.5 w-4 h-4 text-amber-500 border-slate-300 focus:ring-amber-500 flex-shrink-0" />
-              <div>
-                <p className={`text-sm font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>🛋️ Fully Furnished</p>
-                <p className={`text-xs mt-0.5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>All furniture and appliances included — sofa, beds, wardrobe, dining set, TV, fridge, etc.</p>
-              </div>
-            </label>
-
-            <p className={`text-xs font-semibold uppercase tracking-wide ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Or select individual items:</p>
-
-            {/* Furniture */}
-            <div>
-              <p className={`text-xs font-semibold mb-2 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>🪑 Furniture</p>
-              <div className="grid grid-cols-2 gap-2">
-                {[
-                  ['has_sofa',            '🛋️ Sofa / Sitting Room Set'],
-                  ['has_beds_mattresses', '🛏️ Beds with Mattresses'],
-                  ['has_wardrobe',        '🚪 Wardrobe(s)'],
-                  ['has_dining_set',      '🍽️ Dining Table & Chairs'],
-                ].map(([name, label]) => (
-                  <label key={name} className={`flex items-center gap-2.5 p-3 rounded-lg border cursor-pointer transition-colors ${
-                    formData[name] ? 'border-blue-400 bg-blue-50 dark:bg-blue-900/20' : isDark ? 'border-slate-700 hover:bg-slate-700' : 'border-slate-200 hover:bg-slate-50'
+            {(() => {
+              const anyIndividual = [
+                formData.has_sofa, formData.has_beds_mattresses, formData.has_wardrobe,
+                formData.has_dining_set, formData.has_tv, formData.has_fridge,
+                formData.has_washing_machine, formData.has_air_conditioning, formData.has_internet_wifi,
+              ].some(Boolean);
+              const fullyDisabled = anyIndividual;
+              const individualsDisabled = !!formData.is_furnished;
+              return (
+                <>
+                  <label className={`flex items-start gap-3 p-4 rounded-xl border-2 transition-all ${
+                    fullyDisabled
+                      ? 'opacity-40 cursor-not-allowed ' + (isDark ? 'border-slate-700' : 'border-slate-200')
+                      : 'cursor-pointer ' + (formData.is_furnished
+                          ? 'border-amber-500 bg-amber-50 dark:bg-amber-900/20'
+                          : isDark ? 'border-slate-700 hover:border-slate-500' : 'border-slate-200 hover:border-slate-300')
                   }`}>
-                    <input type="checkbox" name={name} checked={formData[name]} onChange={handleChange} className="w-4 h-4 text-blue-600 border-slate-300 focus:ring-blue-500 flex-shrink-0" />
-                    <span className={`text-sm font-medium ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>{label}</span>
+                    <input type="checkbox" name="is_furnished" checked={formData.is_furnished}
+                      disabled={fullyDisabled}
+                      onChange={handleChange}
+                      className="mt-0.5 w-4 h-4 text-amber-500 border-slate-300 focus:ring-amber-500 flex-shrink-0" />
+                    <div>
+                      <p className={`text-sm font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>🛋️ Fully Furnished</p>
+                      <p className={`text-xs mt-0.5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                        {fullyDisabled
+                          ? '⚠️ Deselect individual items first to enable this'
+                          : 'All furniture and appliances included — sofa, beds, wardrobe, dining set, TV, fridge, etc.'}
+                      </p>
+                    </div>
                   </label>
-                ))}
-              </div>
-            </div>
 
-            {/* Electronics & Appliances */}
-            <div>
-              <p className={`text-xs font-semibold mb-2 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>📺 Electronics & Appliances</p>
-              <div className="grid grid-cols-2 gap-2">
-                {[
-                  ['has_tv',               '📺 Television (TV)'],
-                  ['has_fridge',           '🧊 Refrigerator / Fridge'],
-                  ['has_washing_machine',  '🫧 Washing Machine'],
-                  ['has_air_conditioning', '❄️ Air Conditioning (AC)'],
-                  ['has_internet_wifi',    '📶 Internet / WiFi'],
-                ].map(([name, label]) => (
-                  <label key={name} className={`flex items-center gap-2.5 p-3 rounded-lg border cursor-pointer transition-colors ${
-                    formData[name] ? 'border-blue-400 bg-blue-50 dark:bg-blue-900/20' : isDark ? 'border-slate-700 hover:bg-slate-700' : 'border-slate-200 hover:bg-slate-50'
-                  }`}>
-                    <input type="checkbox" name={name} checked={formData[name]} onChange={handleChange} className="w-4 h-4 text-blue-600 border-slate-300 focus:ring-blue-500 flex-shrink-0" />
-                    <span className={`text-sm font-medium ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>{label}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
+                  <div className={`transition-opacity ${individualsDisabled ? 'opacity-40 pointer-events-none' : ''}`}>
+                    <p className={`text-xs font-semibold uppercase tracking-wide mb-3 ${
+                      individualsDisabled
+                        ? isDark ? 'text-slate-600' : 'text-slate-300'
+                        : isDark ? 'text-slate-400' : 'text-slate-500'
+                    }`}>
+                      {individualsDisabled ? '🔒 Individual items disabled (Fully Furnished selected)' : 'Or select individual items:'}
+                    </p>
+
+                    {/* Furniture */}
+                    <div className="mb-4">
+                      <p className={`text-xs font-semibold mb-2 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>🪑 Furniture</p>
+                      <div className="grid grid-cols-2 gap-2">
+                        {[
+                          ['has_sofa',            '🛋️ Sofa / Sitting Room Set'],
+                          ['has_beds_mattresses', '🛏️ Beds with Mattresses'],
+                          ['has_wardrobe',        '🚪 Wardrobe(s)'],
+                          ['has_dining_set',      '🍽️ Dining Table & Chairs'],
+                        ].map(([name, label]) => (
+                          <label key={name} className={`flex items-center gap-2.5 p-3 rounded-lg border transition-colors ${
+                            individualsDisabled
+                              ? isDark ? 'border-slate-700 cursor-not-allowed' : 'border-slate-200 cursor-not-allowed'
+                              : formData[name]
+                                ? 'border-blue-400 bg-blue-50 dark:bg-blue-900/20 cursor-pointer'
+                                : isDark ? 'border-slate-700 hover:bg-slate-700 cursor-pointer' : 'border-slate-200 hover:bg-slate-50 cursor-pointer'
+                          }`}>
+                            <input type="checkbox" name={name} checked={formData[name]}
+                              disabled={individualsDisabled}
+                              onChange={handleChange}
+                              className="w-4 h-4 text-blue-600 border-slate-300 focus:ring-blue-500 flex-shrink-0" />
+                            <span className={`text-sm font-medium ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>{label}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Electronics & Appliances */}
+                    <div>
+                      <p className={`text-xs font-semibold mb-2 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>📺 Electronics & Appliances</p>
+                      <div className="grid grid-cols-2 gap-2">
+                        {[
+                          ['has_tv',               '📺 Television (TV)'],
+                          ['has_fridge',           '🧊 Refrigerator / Fridge'],
+                          ['has_washing_machine',  '🫧 Washing Machine'],
+                          ['has_air_conditioning', '❄️ Air Conditioning (AC)'],
+                          ['has_internet_wifi',    '📶 Internet / WiFi'],
+                        ].map(([name, label]) => (
+                          <label key={name} className={`flex items-center gap-2.5 p-3 rounded-lg border transition-colors ${
+                            individualsDisabled
+                              ? isDark ? 'border-slate-700 cursor-not-allowed' : 'border-slate-200 cursor-not-allowed'
+                              : formData[name]
+                                ? 'border-blue-400 bg-blue-50 dark:bg-blue-900/20 cursor-pointer'
+                                : isDark ? 'border-slate-700 hover:bg-slate-700 cursor-pointer' : 'border-slate-200 hover:bg-slate-50 cursor-pointer'
+                          }`}>
+                            <input type="checkbox" name={name} checked={formData[name]}
+                              disabled={individualsDisabled}
+                              onChange={handleChange}
+                              className="w-4 h-4 text-blue-600 border-slate-300 focus:ring-blue-500 flex-shrink-0" />
+                            <span className={`text-sm font-medium ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>{label}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </>
+              );
+            })()}
 
             {(formData.is_furnished || formData.has_sofa || formData.has_tv || formData.has_fridge || formData.has_air_conditioning || formData.has_internet_wifi) && (
               <div className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium border ${
