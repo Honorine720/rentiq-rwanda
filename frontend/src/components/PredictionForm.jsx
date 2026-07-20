@@ -57,7 +57,7 @@ const PROPERTY_ARRANGEMENTS = [
 const WALL_MATERIALS = ['brick','mud_brick','concrete','wood','mixed'];
 const FLOOR_MATERIALS = ['cement','tiles','earth','wood'];
 const ROOF_MATERIALS = ['iron_sheet','tiles','grass','concrete'];
-const URBAN_RURAL = ['urban','peri_urban','rural'];
+const URBAN_RURAL = ['umugi','peri_urban','icyaro'];
 const ROAD_ACCESS = ['tarmac','murram','footpath'];
 
 // Location zones — client-friendly labels that map to distance_to_cbd_km + is_near_cbd
